@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>WishToday 魔法书完整流程设计图</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: #080504; }
+      body { padding: 16px; }
+      main { display: grid; gap: 16px; align-items: start; }
+      img { display: block; border: 1px solid rgba(183,123,40,.42); box-shadow: 0 12px 28px rgba(0,0,0,.56); }
+      body.desktop main { grid-template-columns: repeat(2, 806px); }
+      body.desktop img { width: 806px; height: 488px; }
+      body.mobile main { grid-template-columns: repeat(4, 394px); }
+      body.mobile img { width: 394px; height: 932px; }
+    </style>
+  </head>
+  <body class="desktop">
+    <main></main>
+    <script>
+      const mode = new URLSearchParams(location.search).get("mode") || "desktop";
+      const count = mode === "desktop" ? 5 : 7;
+      document.body.className = mode;
+      document.querySelector("main").innerHTML = Array.from({ length: count }, (_, index) =>
+        `<img src="wish-magic-book-${mode}-${index + 1}.png" alt="WishToday ${mode} ${index + 1}" />`,
+      ).join("");
+    </script>
+  </body>
+</html>

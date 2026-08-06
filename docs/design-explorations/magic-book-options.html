@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WishToday 魔法书视觉方案</title>
+    <style>
+      :root {
+        color: #f3dfb4;
+        background: #100a07;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --brown-950: #18100c;
+        --brown-900: #241711;
+        --brown-850: #2d1d15;
+        --brown-800: #38251a;
+        --brown-700: #4a3021;
+        --gold: #c9a15a;
+        --gold-dark: #8d6428;
+        --gold-light: #efd08a;
+        --text: #f3dfb4;
+        --sub: #c7ab7a;
+        --line: rgba(201, 161, 90, 0.28);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { width: 100%; min-height: 100%; margin: 0; }
+      body {
+        overflow: hidden;
+        background:
+          repeating-linear-gradient(90deg, rgba(239, 208, 138, 0.025) 0 1px, transparent 1px 8px),
+          linear-gradient(150deg, #2a1911, #0e0907 68%);
+      }
+      h1, h2, h3, p { margin: 0; }
+      h1, h2, h3, .brand, .folio { font-family: "Songti SC", STSong, Georgia, serif; }
+
+      .concept { display: none; width: 100vw; height: 100vh; padding: 12px; }
+      body.o1 .option-1, body.o2 .option-2, body.o3 .option-3 { display: block; }
+      .concept-label {
+        position: fixed;
+        z-index: 50;
+        top: 18px;
+        right: 22px;
+        padding: 7px 12px;
+        color: var(--gold-light);
+        border: 1px solid rgba(239, 208, 138, 0.45);
+        border-radius: 999px;
+        background: rgba(24, 16, 12, 0.88);
+        font-size: 12px;
+        font-weight: 800;
+        backdrop-filter: blur(8px);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--gold-light);
+        font-size: 18px;
+        font-weight: 800;
+      }
+      .brand::before {
+        width: 10px;
+        height: 10px;
+        content: "";
+        border: 1px solid var(--gold-light);
+        border-radius: 50%;
+        background: var(--gold-dark);
+        box-shadow: 0 0 18px rgba(239, 208, 138, 0.45);
+      }
+      .eyebrow {
+        color: var(--gold);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .hero-image {
+        position: relative;
+        overflow: hidden;
+        min-height: 260px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: #1d120d;
+      }
+      .hero-image img { width: 100%; height: 100%; object-fit: cover; }
+      .hero-image::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+        background: linear-gradient(180deg, transparent 25%, rgba(15, 9, 6, 0.25) 48%, rgba(15, 9, 6, 0.96));
+      }
+      .hero-copy {
+        position: absolute;
+        z-index: 2;
+        right: 20px;
+        bottom: 18px;
+        left: 20px;
+      }
+      .hero-copy h1 { margin: 5px 0 4px; font-size: 34px; font-weight: 500; }
+      .hero-copy p { color: var(--text); font-size: 14px; line-height: 1.55; }
+      .tag-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+      .tag {
+        padding: 5px 10px;
+        color: var(--gold-light);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(56, 37, 26, 0.84);
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 13px;
+        color: var(--text);
+        font-size: 19px;
+      }
+      .section-title::before {
+        width: 18px;
+        height: 1px;
+        content: "";
+        background: var(--gold);
+      }
+      .line-list { display: grid; gap: 9px; }
+      .line-item {
+        display: flex;
+        justify-content: space-between;
+        padding-bottom: 8px;
+        color: var(--sub);
+        border-bottom: 1px solid rgba(201, 161, 90, 0.15);
+        font-size: 12px;
+      }
+      .line-item b { color: var(--text); }
+      .primary {
+        display: flex;
+        min-height: 46px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        color: #18100c;
+        background: linear-gradient(180deg, var(--gold-light), var(--gold));
+        font-weight: 900;
+      }
+      .sigil {
+        position: relative;
+        width: 66px;
+        height: 66px;
+        border: 1px solid rgba(201, 161, 90, 0.46);
+        border-radius: 50%;
+      }
+      .sigil::before, .sigil::after {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        content: "";
+        transform: translate(-50%, -50%) rotate(45deg);
+      }
+      .sigil::before { width: 35px; height: 35px; border: 1px solid rgba(239, 208, 138, 0.55); }
+      .sigil::after { width: 8px; height: 8px; border: 1px solid var(--gold-light); border-radius: 50%; }
+
+      /* Option 1: a single codex leaf with an explicit leather spine. */
+      .codex {
+        position: relative;
+        display: grid;
+        grid-template-columns: 42px 1fr 9px;
+        width: min(100%, 674px);
+        height: 100%;
+        margin: 0 auto;
+        filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.58));
+      }
+      .codex-spine {
+        position: relative;
+        z-index: 4;
+        border: 1px solid #71491f;
+        border-radius: 11px 3px 3px 11px;
+        background:
+          linear-gradient(90deg, #100805, #4a2515 48%, #1b0d08),
+          #2b160e;
+        box-shadow: inset -5px 0 10px rgba(0, 0, 0, 0.6);
+      }
+      .codex-spine::before {
+        position: absolute;
+        inset: 38px 8px;
+        content: "";
+        border-top: 4px double #9a6d31;
+        border-bottom: 4px double #9a6d31;
+      }
+      .codex-spine::after {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 18px;
+        height: 90px;
+        content: "";
+        border: 1px solid rgba(239, 208, 138, 0.35);
+        transform: translate(-50%, -50%);
+      }
+      .codex-page {
+        position: relative;
+        padding: 24px 24px 22px;
+        overflow: hidden;
+        border: 1px solid #6e4b28;
+        border-radius: 2px 7px 7px 2px;
+        background:
+          linear-gradient(90deg, rgba(0, 0, 0, 0.38), transparent 7%, transparent 96%, rgba(0, 0, 0, 0.2)),
+          repeating-linear-gradient(0deg, rgba(239, 208, 138, 0.018) 0 1px, transparent 1px 5px),
+          linear-gradient(145deg, #3a251a, #1b110d 55%, #251710);
+        box-shadow: inset 0 0 0 8px rgba(201, 161, 90, 0.04);
+      }
+      .codex-page::before {
+        position: absolute;
+        inset: 10px;
+        content: "";
+        border: 1px solid rgba(201, 161, 90, 0.18);
+        pointer-events: none;
+      }
+      .codex-edge {
+        margin: 8px 0;
+        border-radius: 0 5px 5px 0;
+        background: repeating-linear-gradient(0deg, #a77b3c 0 1px, #51351f 1px 3px);
+        box-shadow: 4px 0 12px rgba(0, 0, 0, 0.6);
+      }
+      .codex-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+      .folio { color: rgba(239, 208, 138, 0.6); font-size: 12px; }
+      .codex .hero-image { height: 356px; }
+      .codex-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px; margin-top: 18px; }
+      .codex-note {
+        padding: 14px;
+        border-left: 1px solid var(--line);
+        color: var(--sub);
+        font-family: "Songti SC", STSong, Georgia, serif;
+        font-size: 13px;
+        line-height: 1.8;
+      }
+      .page-curl {
+        position: absolute;
+        z-index: 7;
+        right: 0;
+        bottom: 0;
+        width: 68px;
+        height: 68px;
+        clip-path: polygon(100% 0, 100% 100%, 0 100%);
+        background: linear-gradient(135deg, #0e0806 0 49%, #9a6d31 50%, #2f1d14 54%, #1a0f0b 100%);
+        filter: drop-shadow(-8px -7px 9px rgba(0, 0, 0, 0.48));
+      }
+
+      /* Option 2: an actual open spread. */
+      .spread {
+        position: relative;
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        width: min(100%, 674px);
+        height: 100%;
+        margin: 0 auto;
+        border-radius: 9px;
+        filter: drop-shadow(0 25px 34px rgba(0, 0, 0, 0.62));
+      }
+      .spread::before {
+        position: absolute;
+        z-index: 8;
+        top: 3%;
+        bottom: 3%;
+        left: 45%;
+        width: 18px;
+        content: "";
+        transform: translateX(-50%);
+        background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.82), rgba(239, 208, 138, 0.1), rgba(0, 0, 0, 0.68), transparent);
+        pointer-events: none;
+      }
+      .spread-page {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #6b4726;
+        background:
+          repeating-linear-gradient(0deg, rgba(239, 208, 138, 0.018) 0 1px, transparent 1px 5px),
+          linear-gradient(150deg, #3a2419, #1c110d 65%);
+      }
+      .spread-left {
+        padding: 24px 21px;
+        border-radius: 8px 0 0 8px;
+        box-shadow: inset -20px 0 28px rgba(0, 0, 0, 0.38);
+      }
+      .spread-right {
+        padding: 24px 24px;
+        border-radius: 0 8px 8px 0;
+        box-shadow: inset 22px 0 30px rgba(0, 0, 0, 0.3);
+      }
+      .spread-left .brand { margin-bottom: 28px; }
+      .chapter-mark { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+      .spread-portrait {
+        position: relative;
+        height: 265px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 50% 50% 7px 7px / 26% 26% 7px 7px;
+      }
+      .spread-portrait img { width: 100%; height: 100%; object-fit: cover; }
+      .spread-portrait::after { position: absolute; inset: 0; content: ""; box-shadow: inset 0 -80px 70px rgba(14, 8, 6, 0.75); }
+      .spread-left h1 { margin: 18px 0 3px; font-size: 29px; font-weight: 500; }
+      .spread-left .story { margin-top: 16px; color: var(--sub); font-size: 12px; line-height: 1.75; }
+      .spread-right-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 25px; }
+      .spread-right h2 { margin-top: 4px; font-size: 27px; font-weight: 500; }
+      .spread-right .sigil { flex: 0 0 auto; transform: scale(0.72); transform-origin: top right; }
+      .ritual-box {
+        margin-bottom: 15px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        background: rgba(56, 37, 26, 0.48);
+      }
+      .ritual-steps { display: grid; gap: 10px; color: var(--sub); font-size: 12px; line-height: 1.55; }
+      .ritual-steps b { margin-right: 7px; color: var(--gold-light); font-family: Georgia, serif; }
+      .spread .primary { margin-top: 18px; }
+      .ribbon {
+        position: absolute;
+        z-index: 9;
+        top: 0;
+        right: 28px;
+        width: 20px;
+        height: 86px;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 83%, 0 100%);
+        background: linear-gradient(90deg, #5d1d1d, #9d4935, #541515);
+        box-shadow: 0 7px 10px rgba(0, 0, 0, 0.38);
+      }
+
+      /* Option 3: stacked enchanted leaves with a visible next-page curl. */
+      .deck {
+        position: relative;
+        width: min(100%, 650px);
+        height: calc(100% - 8px);
+        margin: 4px auto 0;
+      }
+      .deck-layer {
+        position: absolute;
+        inset: 10px 0 0 14px;
+        border: 1px solid #6b4726;
+        border-radius: 7px;
+        background: #261711;
+        box-shadow: 8px 8px 0 #130c09, 12px 12px 0 #55361f, 16px 16px 24px rgba(0, 0, 0, 0.58);
+        transform: rotate(0.65deg);
+      }
+      .deck-layer::after {
+        position: absolute;
+        top: 42px;
+        right: -13px;
+        bottom: 42px;
+        width: 12px;
+        content: "";
+        background: repeating-linear-gradient(0deg, #9e7339 0 1px, #3d2719 1px 4px);
+      }
+      .deck-page {
+        position: absolute;
+        inset: 0 15px 15px 0;
+        z-index: 3;
+        padding: 23px 24px 22px;
+        overflow: hidden;
+        border: 1px solid #7b542c;
+        border-radius: 7px 2px 9px 7px;
+        background:
+          linear-gradient(115deg, rgba(201, 161, 90, 0.08), transparent 30%),
+          repeating-linear-gradient(0deg, rgba(239, 208, 138, 0.018) 0 1px, transparent 1px 5px),
+          linear-gradient(145deg, #3b251a, #190f0c 58%);
+        box-shadow: -7px 9px 28px rgba(0, 0, 0, 0.46);
+      }
+      .deck-page::before {
+        position: absolute;
+        inset: 9px;
+        content: "";
+        border: 1px solid rgba(201, 161, 90, 0.2);
+      }
+      .deck-head { position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+      .deck-chapter { display: flex; align-items: center; gap: 13px; }
+      .deck-chapter .sigil { width: 38px; height: 38px; }
+      .deck-chapter .sigil::before { width: 19px; height: 19px; }
+      .deck .hero-image { position: relative; z-index: 2; height: 330px; margin-right: 43px; }
+      .deck-grid { position: relative; z-index: 2; display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 18px; margin-top: 17px; margin-right: 43px; }
+      .arcane-note {
+        padding: 15px;
+        border: 1px solid var(--line);
+        background: rgba(27, 17, 13, 0.56);
+        color: var(--sub);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      .chapter-tabs {
+        position: absolute;
+        z-index: 7;
+        top: 112px;
+        right: 0;
+        display: grid;
+        gap: 8px;
+      }
+      .chapter-tab {
+        width: 44px;
+        padding: 12px 0;
+        color: var(--sub);
+        border: 1px solid var(--line);
+        border-right: 0;
+        border-radius: 7px 0 0 7px;
+        background: #2e1d15;
+        font-family: "Songti SC", STSong, serif;
+        font-size: 11px;
+        text-align: center;
+        writing-mode: vertical-rl;
+      }
+      .chapter-tab.active { color: #18100c; border-color: var(--gold-light); background: var(--gold); font-weight: 900; }
+      .turning-corner {
+        position: absolute;
+        z-index: 9;
+        top: 0;
+        right: 15px;
+        width: 112px;
+        height: 112px;
+        clip-path: polygon(18% 0, 100% 0, 100% 86%);
+        background: linear-gradient(42deg, rgba(15, 9, 7, 0.15) 0 42%, #a87b3d 44%, #342016 48%, #180e0b 100%);
+        filter: drop-shadow(-11px 11px 10px rgba(0, 0, 0, 0.5));
+      }
+      .turning-corner::after {
+        position: absolute;
+        top: 28px;
+        right: 24px;
+        width: 32px;
+        height: 32px;
+        content: "";
+        border: 1px solid rgba(239, 208, 138, 0.55);
+        transform: rotate(45deg);
+      }
+
+      @media (max-width: 500px) {
+        .concept { padding: 7px; }
+        .concept-label { top: 13px; right: 13px; padding: 6px 9px; font-size: 10px; }
+        .hero-copy { right: 14px; bottom: 14px; left: 14px; }
+        .hero-copy h1 { font-size: 28px; }
+        .hero-copy p { font-size: 12px; }
+
+        .codex { grid-template-columns: 20px 1fr 6px; }
+        .codex-spine { border-radius: 8px 2px 2px 8px; }
+        .codex-spine::after { width: 8px; height: 62px; }
+        .codex-spine::before { inset: 32px 4px; }
+        .codex-page { padding: 20px 15px 18px; }
+        .codex-head { margin: 2px 0 43px; }
+        .codex .hero-image { height: 360px; }
+        .codex-grid { grid-template-columns: 1fr; gap: 13px; }
+        .codex-note { padding: 9px 12px; font-size: 11px; line-height: 1.6; }
+        .page-curl { width: 56px; height: 56px; }
+
+        .spread { display: block; }
+        .spread::before { left: 15px; width: 14px; }
+        .spread-left {
+          position: absolute;
+          inset: 13px 13px 0 0;
+          z-index: 1;
+          padding: 19px 16px;
+          transform: translateX(-6px) rotate(-0.8deg);
+        }
+        .spread-left .brand { margin-bottom: 52px; }
+        .spread-left .chapter-mark, .spread-left .spread-portrait, .spread-left h1, .spread-left .eyebrow, .spread-left .story { visibility: hidden; }
+        .spread-right {
+          position: absolute;
+          inset: 0 0 12px 12px;
+          z-index: 3;
+          padding: 21px 17px;
+          border-radius: 4px 8px 8px 4px;
+        }
+        .spread-right-head { margin: 4px 0 46px; }
+        .spread-right h2 { font-size: 24px; }
+        .mobile-spread-hero {
+          position: relative;
+          height: 282px;
+          margin-bottom: 15px;
+          overflow: hidden;
+          border: 1px solid var(--line);
+        }
+        .mobile-spread-hero img { width: 100%; height: 100%; object-fit: cover; }
+        .mobile-spread-hero::after { position: absolute; inset: 0; content: ""; background: linear-gradient(180deg, transparent 35%, rgba(16, 9, 7, 0.92)); }
+        .mobile-spread-hero h1 { position: absolute; z-index: 2; right: 14px; bottom: 14px; left: 14px; font-size: 27px; font-weight: 500; }
+        .spread-right .line-list { gap: 7px; }
+        .ritual-box { padding: 13px; }
+        .ritual-steps { gap: 7px; }
+        .spread .primary { margin-top: 12px; }
+        .ribbon { right: 23px; height: 72px; }
+
+        .deck { height: calc(100% - 5px); margin-top: 2px; }
+        .deck-layer { inset: 10px 1px 0 10px; box-shadow: 5px 6px 0 #130c09, 9px 10px 0 #55361f, 13px 13px 20px rgba(0,0,0,.58); }
+        .deck-layer::after { right: -3px; width: 5px; }
+        .deck-page { inset: 0 12px 12px 0; padding: 19px 15px; }
+        .deck-head { margin: 3px 39px 48px 0; }
+        .deck .hero-image { height: 330px; margin-right: 23px; }
+        .deck-grid { grid-template-columns: 1fr; gap: 12px; margin-right: 23px; }
+        .arcane-note { padding: 11px; line-height: 1.55; }
+        .chapter-tabs { top: 164px; }
+        .chapter-tab { width: 28px; padding: 9px 0; font-size: 9px; }
+        .turning-corner { right: 12px; width: 82px; height: 82px; }
+        .turning-corner::after { top: 20px; right: 18px; width: 23px; height: 23px; }
+      }
+
+      @media (min-width: 501px) {
+        .mobile-spread-hero { display: none; }
+      }
+    </style>
+  </head>
+  <body class="o1">
+    <section class="concept option-1">
+      <div class="concept-label">方案一 · 典藏单页</div>
+      <div class="codex">
+        <aside class="codex-spine" aria-hidden="true"></aside>
+        <main class="codex-page">
+          <header class="codex-head"><div class="brand">WishToday</div><div class="folio">CODEX · II</div></header>
+          <section class="hero-image">
+            <img src="../../public/mock/cocktails/old-fashioned.png" alt="古典鸡尾酒" />
+            <div class="hero-copy">
+              <div class="eyebrow">Old Fashioned</div><h1>古典鸡尾酒</h1>
+              <p>温暖、缓慢、认真，适合今晚把节奏降下来。</p>
+              <div class="tag-row"><span class="tag">橡木焦糖</span><span class="tag">苦韵回甘</span></div>
+            </div>
+          </section>
+          <section class="codex-grid">
+            <div><h2 class="section-title">配料清单</h2><div class="line-list"><div class="line-item"><span>波本威士忌</span><b>45 ml</b></div><div class="line-item"><span>糖浆</span><b>8 ml</b></div><div class="line-item"><span>芳香苦精</span><b>2 dash</b></div></div></div>
+            <p class="codex-note">十九世纪初，这杯酒以烈酒、糖、苦精和水，回到鸡尾酒最朴素的原点。</p>
+          </section>
+          <div class="page-curl" aria-hidden="true"></div>
+        </main>
+        <div class="codex-edge" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="concept option-2">
+      <div class="concept-label">方案二 · 摊开秘典</div>
+      <main class="spread">
+        <section class="spread-page spread-left">
+          <div class="brand">WishToday</div>
+          <div class="chapter-mark"><span class="eyebrow">Chapter II</span><span class="folio">12</span></div>
+          <div class="spread-portrait"><img src="../../public/mock/cocktails/old-fashioned.png" alt="古典鸡尾酒" /></div>
+          <h1>古典鸡尾酒</h1><p class="eyebrow">Old Fashioned</p>
+          <p class="story">十九世纪初，这杯酒以烈酒、糖、苦精和水回到鸡尾酒最朴素的原点。橙皮香气与威士忌木桶风味，让它成为跨越时代的经典。</p>
+        </section>
+        <section class="spread-page spread-right">
+          <header class="spread-right-head"><div><p class="eyebrow">The Ritual</p><h2>今夜的调制仪式</h2></div><div class="sigil" aria-hidden="true"></div></header>
+          <div class="mobile-spread-hero"><img src="../../public/mock/cocktails/old-fashioned.png" alt="古典鸡尾酒" /><h1>古典鸡尾酒</h1></div>
+          <div class="ritual-box"><h3 class="section-title">配料清单</h3><div class="line-list"><div class="line-item"><span>波本威士忌</span><b>45 ml</b></div><div class="line-item"><span>糖浆</span><b>8 ml</b></div><div class="line-item"><span>芳香苦精</span><b>2 dash</b></div></div></div>
+          <div class="ritual-box"><h3 class="section-title">调制步骤</h3><div class="ritual-steps"><p><b>01</b>杯中加入糖浆与苦精。</p><p><b>02</b>加入威士忌和冰块，轻柔搅拌。</p><p><b>03</b>用橙皮释放香气。</p></div></div>
+          <div class="primary">按此配方去实验台　›</div>
+        </section>
+        <div class="ribbon" aria-hidden="true"></div>
+      </main>
+    </section>
+
+    <section class="concept option-3">
+      <div class="concept-label">方案三 · 层叠活页</div>
+      <main class="deck">
+        <div class="deck-layer" aria-hidden="true"></div>
+        <article class="deck-page">
+          <header class="deck-head"><div class="brand">WishToday</div><div class="deck-chapter"><div><p class="eyebrow">Chapter II</p><span class="folio">CLASSICS</span></div><div class="sigil" aria-hidden="true"></div></div></header>
+          <section class="hero-image">
+            <img src="../../public/mock/cocktails/old-fashioned.png" alt="古典鸡尾酒" />
+            <div class="hero-copy"><p class="eyebrow">Old Fashioned</p><h1>古典鸡尾酒</h1><p>温暖、缓慢、认真，适合今晚把节奏降下来。</p><div class="tag-row"><span class="tag">橡木焦糖</span><span class="tag">苦韵回甘</span></div></div>
+          </section>
+          <section class="deck-grid">
+            <div><h2 class="section-title">配料清单</h2><div class="line-list"><div class="line-item"><span>波本威士忌</span><b>45 ml</b></div><div class="line-item"><span>糖浆</span><b>8 ml</b></div><div class="line-item"><span>芳香苦精</span><b>2 dash</b></div></div></div>
+            <div class="arcane-note"><p class="eyebrow">背后的故事</p><p>橙皮香气与威士忌的木桶风味，让它成为跨越时代的经典。</p></div>
+          </section>
+          <nav class="chapter-tabs"><span class="chapter-tab">首页</span><span class="chapter-tab active">经典</span><span class="chapter-tab">实验台</span><span class="chapter-tab">笔记</span></nav>
+          <div class="turning-corner" aria-hidden="true"></div>
+        </article>
+      </main>
+    </section>
+    <script>
+      const option = new URLSearchParams(location.search).get("option") || "1";
+      document.body.className = `o${option}`;
+    </script>
+  </body>
+</html>

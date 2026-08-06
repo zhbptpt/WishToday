@@ -1,0 +1,34 @@
+
+> wishtoday@0.1.0 dev
+> vite --host 127.0.0.1 --port 5173
+
+
+  VITE v7.3.6  ready in 1926 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
+18:25:09 [vite] (client) hmr update /src/routes/AppRouter.tsx
+18:25:09 [vite] (client) hmr update /src/components/AppShell.tsx
+18:25:09 [vite] (client) hmr update /src/styles/global.css
+18:28:59 [vite] (client) hmr update /src/styles/global.css
+18:29:13 [vite] (client) hmr update /src/styles/global.css
+18:30:41 [vite] (client) hmr update /src/routes/AppRouter.tsx
+18:54:46 [vite] (client) page reload docs/design-explorations/magic-book-options.html
+18:56:53 [vite] (client) page reload docs/design-explorations/magic-book-options.html
+18:56:53 [vite] (client) page reload docs/design-explorations/magic-book-contact-sheet.html
+19:16:10 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+19:18:30 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+19:19:29 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+19:21:02 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow-contact.html
+20:48:20 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+20:50:47 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+20:53:11 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+21:17:10 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+21:17:10 [vite] (client) page reload docs/design-explorations/wish-magic-book-mobile-actions-contact.html
+21:18:57 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+21:45:50 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+21:45:50 [vite] (client) page reload docs/design-explorations/wish-magic-book-emboss-contact.html
+21:50:23 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+21:50:54 [vite] (client) page reload docs/design-explorations/wish-magic-book-emboss-contact.html
+22:08:50 [vite] (client) page reload docs/design-explorations/wish-magic-book-flow.html
+22:10:29 [vite] (client) page reload docs/design-explorations/wish-magic-book-emboss-botanical-refinement-contact.html
+22:54:59 [vite] (client) hmr update /src/components/AppShell.tsx

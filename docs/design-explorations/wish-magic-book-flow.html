@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WishToday 魔法书完整流程设计</title>
+    <style>
+      :root {
+        color: #e7c98b;
+        background: #0c0806;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        --ink: #e7c98b;
+        --ink-strong: #f1d899;
+        --ink-muted: #af8644;
+        --gold: #b77b28;
+        --gold-dark: #76501f;
+        --line: rgba(183, 123, 40, 0.52);
+        --line-soft: rgba(183, 123, 40, 0.22);
+        --leather: #21140e;
+        --page: #281810;
+        --page-deep: #150d09;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+      body {
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' seed='12'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.46'/%3E%3C/svg%3E"),
+          repeating-linear-gradient(0deg, rgba(231, 201, 139, 0.018) 0 1px, transparent 1px 5px),
+          repeating-linear-gradient(90deg, rgba(231, 201, 139, 0.012) 0 1px, transparent 1px 9px),
+          linear-gradient(150deg, #18100c, #070504 72%);
+        background-blend-mode: soft-light, screen, screen, normal;
+      }
+      h1, h2, h3, p { margin: 0; }
+      h1, h2, h3, .brand, .chapter-title, .folio, .page-number { font-family: "Songti SC", STSong, Georgia, serif; }
+      button, input, select, textarea { font: inherit; }
+
+      .desktop-spread, .mobile-screen { display: none; }
+      body.desktop.spread-1 .desktop-spread.s1,
+      body.desktop.spread-2 .desktop-spread.s2,
+      body.desktop.spread-3 .desktop-spread.s3,
+      body.desktop.spread-4 .desktop-spread.s4,
+      body.desktop.spread-5 .desktop-spread.s5 { display: block; }
+      body.mobile.screen-1 .mobile-screen.m1,
+      body.mobile.screen-2 .mobile-screen.m2,
+      body.mobile.screen-3 .mobile-screen.m3,
+      body.mobile.screen-4 .mobile-screen.m4,
+      body.mobile.screen-5 .mobile-screen.m5,
+      body.mobile.screen-6 .mobile-screen.m6,
+      body.mobile.screen-7 .mobile-screen.m7 { display: block; }
+
+      .topbar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        z-index: 20;
+        display: flex;
+        height: 80px;
+        align-items: center;
+        gap: 22px;
+        padding: 0 48px;
+        border-bottom: 1px solid rgba(183, 123, 40, 0.12);
+        background: linear-gradient(180deg, rgba(12,8,6,.96), rgba(12,8,6,.68));
+      }
+      .brand { display: flex; align-items: center; gap: 12px; color: var(--ink-strong); font-size: 27px; font-weight: 700; }
+      .brand::before { width: 20px; height: 20px; content: ""; border: 1px solid var(--ink); border-radius: 50%; background: repeating-radial-gradient(circle, #9a6d2d 0 2px, #4c2d15 2px 4px); box-shadow: 0 0 18px rgba(183,123,40,.3); }
+      .top-divider { width: 1px; height: 32px; background: var(--line); }
+      .volume-title { color: #d7a75b; font-family: "Songti SC", STSong, Georgia, serif; font-size: 25px; font-weight: 700; }
+
+      .book {
+        position: absolute;
+        top: 80px;
+        right: 34px;
+        bottom: 35px;
+        left: 34px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        filter: drop-shadow(0 28px 30px rgba(0,0,0,.72));
+      }
+      .book::before {
+        position: absolute;
+        inset: -8px -15px -13px;
+        z-index: -3;
+        content: "";
+        border: 2px solid #50331c;
+        border-radius: 42px 42px 24px 24px;
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.58' numOctaves='4' seed='7'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E"),
+          linear-gradient(112deg, #0f0805, #3b2012 16%, #170c08 48%, #2b180f 82%, #0b0604);
+        background-blend-mode: soft-light, normal;
+        box-shadow:
+          inset 0 1px rgba(232, 177, 91, 0.22),
+          inset 0 -3px rgba(0, 0, 0, 0.72),
+          0 6px 0 #0a0604,
+          0 11px 0 #432818,
+          0 16px 24px #000;
+      }
+      .book::after {
+        position: absolute;
+        z-index: 8;
+        top: 1.5%;
+        bottom: 1.5%;
+        left: 50%;
+        width: 32px;
+        content: "";
+        transform: translateX(-50%);
+        background: linear-gradient(90deg, transparent, rgba(0,0,0,.8), rgba(183,123,40,.08), rgba(0,0,0,.72), transparent);
+        pointer-events: none;
+      }
+      .leaf {
+        position: relative;
+        overflow: hidden;
+        padding: 46px 58px 54px;
+        border: 1px solid #65421f;
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='210' height='210'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.76' numOctaves='4' seed='19'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='210' height='210' filter='url(%23n)' opacity='.58'/%3E%3C/svg%3E"),
+          linear-gradient(116deg, transparent 8%, rgba(243, 196, 113, 0.055) 18%, transparent 30%, transparent 67%, rgba(224, 167, 82, 0.035) 78%, transparent 89%),
+          repeating-linear-gradient(13deg, transparent 0 23px, rgba(224, 170, 86, 0.018) 24px 25px, transparent 26px 43px),
+          linear-gradient(90deg, rgba(0,0,0,.25), transparent 7%, transparent 93%, rgba(0,0,0,.18)),
+          repeating-linear-gradient(0deg, rgba(231,201,139,.018) 0 1px, transparent 1px 5px),
+          linear-gradient(145deg, #2d1b12, #180f0b 68%);
+        background-blend-mode: soft-light, screen, overlay, multiply, screen, normal;
+      }
+      .leaf.left {
+        border-radius: 38px 3px 6px 22px;
+        box-shadow:
+          inset -30px 0 38px rgba(0,0,0,.38),
+          inset 0 1px rgba(232, 177, 91, 0.18),
+          -5px 0 0 #140a06,
+          -9px 0 0 #4a2a17;
+      }
+      .leaf.right {
+        border-radius: 3px 38px 22px 6px;
+        box-shadow:
+          inset 30px 0 38px rgba(0,0,0,.36),
+          inset 0 1px rgba(232, 177, 91, 0.18),
+          5px 0 0 #9a6c37,
+          8px 0 0 #2b190f,
+          11px 0 0 #b0824b,
+          15px 0 0 #24150d,
+          18px 0 0 #7a542b;
+      }
+      .leaf::before {
+        position: absolute;
+        inset: 14px 18px;
+        content: "";
+        border: 1px solid rgba(183,123,40,.34);
+        border-radius: 12px;
+        box-shadow:
+          inset 0 0 0 1px rgba(232, 177, 91, 0.04),
+          inset 0 0 34px rgba(0, 0, 0, 0.24),
+          0 0 9px rgba(201, 137, 50, 0.08);
+        pointer-events: none;
+      }
+      .leaf::after {
+        position: absolute;
+        inset: 24px 30px;
+        content: "";
+        border-top: 1px solid rgba(210,151,69,.19);
+        border-bottom: 1px solid rgba(210,151,69,.16);
+        background:
+          linear-gradient(90deg, transparent, rgba(235,182,94,.11) 12%, transparent 29%, transparent 65%, rgba(235,182,94,.07) 82%, transparent) top / 100% 1px no-repeat,
+          linear-gradient(90deg, transparent, rgba(235,182,94,.06) 18%, transparent 40%, rgba(235,182,94,.1) 76%, transparent) bottom / 100% 1px no-repeat;
+        pointer-events: none;
+      }
+      .leaf > :not(.surface-wear):not(.page-curl):not(.curl-label):not(.circle-nav),
+      .mobile-book > :not(.surface-wear):not(.mobile-curl):not(.mobile-folio):not(.gold-button):not(.mobile-footer-rule):not(.mobile-page-link) {
+        position: relative;
+        z-index: 2;
+      }
+      .surface-wear {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        content: "";
+        pointer-events: none;
+        opacity: 0.26;
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='330' height='330'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018 .085' numOctaves='3' seed='31'/%3E%3CfeColorMatrix values='0 0 0 0 .86 0 0 0 0 .57 0 0 0 0 .27 .62 .62 .62 0 -1.08'/%3E%3C/filter%3E%3Crect width='330' height='330' filter='url(%23w)'/%3E%3C/svg%3E"),
+          linear-gradient(102deg, transparent 0 11%, rgba(236,181,92,.12) 11.15%, transparent 11.5%, transparent 43%, rgba(220,158,71,.09) 43.15%, transparent 43.7%, transparent 82%, rgba(233,178,87,.07) 82.2%, transparent 82.7%),
+          repeating-linear-gradient(168deg, transparent 0 73px, rgba(228,171,82,.045) 74px 75px, transparent 76px 143px);
+        background-size: 330px 330px, 100% 100%, 100% 100%;
+        mix-blend-mode: screen;
+      }
+      .mobile-book .surface-wear { opacity: 0.22; }
+      .chapter-title { position: relative; z-index: 2; color: #d89b42; font-size: 38px; font-weight: 500; text-align: center; }
+      .chapter-rule { position: relative; z-index: 2; width: 70%; height: 12px; margin: 10px auto 22px; border-top: 1px solid var(--gold); }
+      .chapter-rule::after { position: absolute; top: -5px; left: 50%; width: 9px; height: 9px; content: ""; border: 1px solid var(--gold); transform: translateX(-50%) rotate(45deg); background: var(--page); }
+      .eyebrow { color: #c18a37; font-size: 13px; font-weight: 900; text-transform: uppercase; }
+      .muted { color: #b68d4c; line-height: 1.7; }
+      .ink-title { color: var(--ink-strong); font-family: "Songti SC", STSong, Georgia, serif; font-size: 28px; font-weight: 500; }
+      .manuscript-field { display: grid; gap: 7px; padding: 8px 0 12px; border-bottom: 1px solid var(--gold-dark); }
+      .manuscript-field label { color: #c18a37; font-size: 14px; }
+      .manuscript-field strong { color: var(--ink-strong); font-family: "Songti SC", STSong, Georgia, serif; font-size: 29px; font-weight: 400; }
+      .ornament { display: inline-flex; align-items: center; gap: 8px; color: #c18a37; }
+      .ornament::after { width: 34px; height: 17px; content: ""; border-top: 1px solid var(--gold); border-right: 1px solid var(--gold); transform: skew(-28deg); }
+      .photo { position: relative; overflow: hidden; border: 1px solid var(--line); background: #100a07; }
+      .photo img { width: 100%; height: 100%; object-fit: cover; }
+      .photo::after { position: absolute; inset: 0; content: ""; box-shadow: inset 0 -100px 90px rgba(12,7,5,.78); }
+      .photo-copy { position: absolute; z-index: 2; right: 20px; bottom: 18px; left: 20px; }
+      .photo-copy h2 { margin: 5px 0; color: var(--ink-strong); font-size: 31px; font-weight: 500; }
+      .photo-copy p { color: var(--ink); font-size: 13px; line-height: 1.5; }
+      .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+      .tag { padding: 6px 11px; color: #d8aa5d; border: 1px solid var(--line); border-radius: 999px; background: rgba(43,25,16,.75); font-size: 12px; font-weight: 800; }
+      .section-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; color: var(--ink-strong); font-family: "Songti SC", STSong, Georgia, serif; font-size: 21px; }
+      .section-heading::before { width: 20px; height: 1px; content: ""; background: var(--gold); }
+      .line-list { display: grid; gap: 8px; }
+      .line-item { display: flex; justify-content: space-between; padding: 0 0 8px; color: #bd914e; border-bottom: 1px solid rgba(183,123,40,.18); font-size: 13px; }
+      .line-item b { color: var(--ink-strong); }
+      .outline-panel { padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: rgba(42,25,16,.35); }
+      .gold-button { display: flex; min-height: 46px; align-items: center; justify-content: center; gap: 10px; color: #170e09; border: 1px solid #e7c98b; border-radius: 999px; background: linear-gradient(180deg, #ebcb87, #bb7c27); font-weight: 900; }
+      .outline-button { display: flex; min-height: 42px; align-items: center; justify-content: center; color: #d2a253; border: 1px solid var(--line); border-radius: 12px; background: rgba(55,32,20,.48); font-weight: 800; }
+      .circle-nav { position: absolute; z-index: 12; bottom: 10px; display: grid; width: 54px; height: 54px; place-items: center; color: #e1bb74; border: 2px solid #a36d28; border-radius: 50%; background: #28170f; box-shadow: inset 0 0 0 3px #120a07, 0 4px 12px #000; font-size: 32px; }
+      .circle-nav.prev { left: 25px; }
+      .circle-nav.next { right: 25px; }
+      .page-curl {
+        position: absolute;
+        z-index: 10;
+        right: 0;
+        bottom: 0;
+        width: 232px;
+        height: 222px;
+        clip-path: polygon(100% 0, 100% 100%, 0 100%, 19% 89%, 39% 70%, 57% 47%, 73% 22%);
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.64' numOctaves='3' seed='21'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.46'/%3E%3C/svg%3E"),
+          linear-gradient(137deg, transparent 0 43%, rgba(238,188,104,.28) 45%, #ad7638 47%, #422516 50%, #25140d 63%, #100906 100%);
+        background-blend-mode: soft-light, normal;
+        filter: drop-shadow(-15px -15px 13px rgba(0,0,0,.68));
+      }
+      .page-curl::before {
+        position: absolute;
+        right: -28px;
+        bottom: 104px;
+        width: 292px;
+        height: 2px;
+        content: "";
+        background: linear-gradient(90deg, transparent, rgba(244,204,133,.78), rgba(98,57,27,.34), transparent);
+        box-shadow: 0 3px 9px rgba(0,0,0,.72);
+        transform: rotate(-47deg);
+      }
+      .page-curl::after {
+        position: absolute;
+        right: 24px;
+        bottom: 17px;
+        content: "✦";
+        color: rgba(213,153,68,.72);
+        font-size: 28px;
+        text-shadow: 0 0 10px rgba(205,139,54,.35);
+      }
+      .curl-label { position: absolute; z-index: 12; right: 104px; bottom: 68px; color: #d79a40; font-family: "Songti SC", STSong, serif; font-size: 18px; text-align: center; }
+      .curl-label b { display: block; font-size: 32px; font-weight: 400; }
+      .folio { position: absolute; z-index: 15; bottom: -4px; left: 50%; min-width: 150px; padding: 8px 18px; color: #d19a43; border: 1px solid rgba(183,123,40,.26); border-radius: 999px; background: #190f0a; transform: translateX(-50%); text-align: center; font-size: 19px; }
+
+      /* Spread 1 */
+      .home-intro { text-align: center; }
+      .home-intro .muted { max-width: 44ch; margin: 0 auto 18px; }
+      .recommend-photo { height: 420px; margin-top: 14px; border-radius: 150px 150px 12px 12px / 38px 38px 12px 12px; }
+      .recommend-controls { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+      .dots { display: flex; gap: 8px; }
+      .dot { width: 8px; height: 8px; border: 1px solid var(--gold); border-radius: 50%; }
+      .dot.active { background: var(--ink-strong); }
+      .tiny-arrows { display: flex; gap: 8px; }
+      .tiny-arrows span { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--line); border-radius: 50%; }
+      .detail-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 20px; }
+      .detail-photo { height: 265px; border-radius: 12px 80px 12px 12px / 12px 28px 12px 12px; }
+      .story { color: #c49b5b; font-family: "Songti SC", STSong, serif; font-size: 14px; line-height: 1.85; }
+      .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+      .fact { padding: 9px; border: 1px solid var(--line-soft); border-radius: 999px; text-align: center; }
+      .fact small { display: block; color: #9f7438; font-size: 10px; }
+      .fact b { color: var(--ink-strong); font-size: 12px; }
+      .flavor-layout { display: grid; grid-template-columns: 210px 1fr; gap: 22px; margin-top: 18px; }
+      .radar { position: relative; width: 190px; height: 190px; margin: 0 auto; }
+      .radar-ring { position: absolute; inset: 12px; clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); background: rgba(183,123,40,.46); }
+      .radar-ring::before { position: absolute; inset: 2px; content: ""; clip-path: inherit; background: var(--page-deep); }
+      .radar-fill { position: absolute; inset: 43px 28px 22px 38px; clip-path: polygon(52% 0, 88% 31%, 73% 71%, 50% 100%, 12% 68%, 24% 27%); background: rgba(208,150,57,.48); border: 1px solid #e5ba70; }
+      .radar-label { position: absolute; color: #c89649; font-size: 11px; }
+      .radar-label.top { top: 0; left: 42%; }.radar-label.tr { top: 25%; right: 0; }.radar-label.br { right: 0; bottom: 22%; }.radar-label.bottom { bottom: 0; left: 43%; }.radar-label.bl { bottom: 22%; left: 0; }.radar-label.tl { top: 25%; left: 0; }
+      .detail-sections { display: grid; gap: 15px; }
+
+      /* Spread 2 */
+      .source-line { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; color: #c38b38; font-size: 17px; }
+      .source-pill { padding: 6px 11px; border: 1px solid var(--line); }
+      .recipe-visual { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: end; margin-top: 25px; }
+      .recipe-photo { height: 285px; border-radius: 14px; }
+      .measure-art { position: relative; height: 245px; border-bottom: 1px solid var(--line-soft); }
+      .measure-art::before { position: absolute; right: 45px; bottom: 20px; width: 118px; height: 140px; content: ""; border: 1px solid var(--gold-dark); border-radius: 0 0 28px 28px; box-shadow: inset 0 -60px rgba(151,101,40,.18); }
+      .measure-art::after { position: absolute; right: 70px; bottom: 80px; width: 72px; height: 38px; content: ""; border: 1px solid var(--gold-dark); transform: rotate(-18deg); }
+      .measure-lines { position: absolute; left: 20px; bottom: 28px; display: grid; gap: 21px; color: #9e6d2d; font-size: 12px; }
+      .measure-lines span::after { display: inline-block; width: 80px; margin-left: 8px; content: ""; border-top: 1px solid var(--gold-dark); }
+      .add-button { margin-bottom: 17px; }
+      .ingredient-table { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; }
+      .ingredient-head, .ingredient-row { display: grid; grid-template-columns: 44px 1fr 132px 94px 54px; align-items: center; gap: 10px; padding: 11px 14px; }
+      .ingredient-head { color: #b57f31; border-bottom: 1px solid var(--line); font-size: 12px; }
+      .ingredient-row { color: var(--ink); border-bottom: 1px solid var(--line-soft); }
+      .ingredient-row:last-child { border-bottom: 0; }
+      .step-num { font-family: Georgia, serif; font-size: 20px; }
+      .stepper { display: flex; align-items: center; justify-content: space-around; height: 38px; border: 1px solid var(--line); border-radius: 6px; }
+      .unit-box, .trash { display: grid; height: 38px; place-items: center; border: 1px solid var(--line); border-radius: 6px; }
+      .workbench-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+      .note-area { height: 74px; padding: 10px; border: 1px solid var(--line-soft); color: #a97b3a; }
+
+      /* Spread 3 */
+      .preview-name { margin: 10px 0 6px; color: var(--ink-strong); font-family: "Songti SC", STSong, serif; font-size: 42px; font-weight: 400; }
+      .preview-meta { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin: 20px 0; }
+      .preview-meta div { padding: 13px; border: 1px solid var(--line-soft); text-align: center; }
+      .preview-meta small { display: block; color: #9d7035; }
+      .preview-actions { display: grid; grid-template-columns: .7fr 1.3fr; gap: 12px; margin-top: 20px; }
+      .auth-wrap { width: min(100%, 520px); margin: 0 auto; }
+      .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; margin: 8px 0 22px; border-bottom: 1px solid var(--line); }
+      .auth-tab { padding: 11px; color: #9f7337; text-align: center; }
+      .auth-tab.active { color: var(--ink-strong); border-bottom: 2px solid var(--gold); }
+      .auth-copy { margin-bottom: 18px; color: #b98f50; line-height: 1.7; text-align: center; }
+      .auth-form { display: grid; gap: 15px; }
+      .auth-field { display: grid; gap: 7px; }
+      .auth-field label { color: #b27e35; font-size: 13px; }
+      .auth-input { min-height: 47px; padding: 0 14px; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; background: rgba(47,28,18,.58); }
+      .privacy-note { margin: 16px 0; padding: 12px; color: #a67b43; border-left: 2px solid var(--gold-dark); font-size: 12px; line-height: 1.6; }
+
+      /* Spread 4 */
+      .notebook-list { display: grid; gap: 12px; }
+      .recipe-entry { position: relative; display: grid; gap: 7px; padding: 16px 54px 16px 18px; border: 1px solid var(--line-soft); background: rgba(42,25,16,.34); }
+      .recipe-entry::after { position: absolute; top: 50%; right: 18px; content: "›"; color: #d2a256; font-size: 28px; transform: translateY(-50%); }
+      .recipe-entry h3 { color: var(--ink-strong); font-size: 22px; font-weight: 400; }
+      .recipe-entry p { color: #9f743d; font-size: 12px; }
+      .notebook-filter { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+      .wax-seal { position: relative; display: grid; width: 66px; height: 66px; place-items: center; color: #edcb87; border: 3px double #b67c2d; border-radius: 50%; background: #65301d; box-shadow: 0 5px 12px #000; font-family: Georgia, serif; font-size: 13px; }
+      .saved-banner { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px 15px; color: #dfb86c; border: 1px solid var(--line); background: rgba(100,49,27,.32); }
+      .recipe-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+      .step-list { display: grid; gap: 10px; padding-left: 21px; color: #b98e4d; line-height: 1.6; font-size: 13px; }
+      .personal-note { margin-top: 16px; padding: 14px; color: #c39a5c; border: 1px solid var(--line-soft); font-family: "Songti SC", STSong, serif; line-height: 1.7; }
+      .search-box { display: flex; min-height: 46px; align-items: center; padding: 0 14px; color: #9c7138; border: 1px solid var(--line); border-radius: 8px; background: rgba(47,28,18,.48); }
+      .category-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+      .category { padding: 7px 12px; color: #b68a49; border: 1px solid var(--line-soft); border-radius: 999px; font-size: 12px; }
+      .category.active { color: #170e09; border-color: var(--ink-strong); background: var(--gold); font-weight: 800; }
+      .library-list { display: grid; gap: 9px; }
+      .library-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid var(--line-soft); }
+      .library-row b { color: var(--ink-strong); }
+      .library-row p { margin-top: 4px; color: #9f743d; font-size: 11px; }
+      .mini-add { padding: 8px 14px; color: #d8aa5d; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 800; }
+      .mini-add.added { opacity: .48; }
+      .empty-state { display: grid; justify-items: center; gap: 10px; margin-top: 18px; padding: 18px; color: #a77b43; border: 1px dashed var(--line); text-align: center; }
+      .empty-state .wax-seal { width: 50px; height: 50px; }
+
+      /* Mobile leaf */
+      .mobile-screen { width: 100%; height: 100%; padding: 7px; }
+      .mobile-book {
+        position: relative;
+        width: calc(100% - 12px);
+        height: 100%;
+        padding: 18px 17px 80px 26px;
+        overflow: hidden;
+        border: 1px solid #714820;
+        border-radius: 8px 15px 15px 7px;
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='190'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='4' seed='19'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='190' height='190' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E"),
+          linear-gradient(116deg, transparent 6%, rgba(244,198,112,.06) 18%, transparent 31%, transparent 68%, rgba(229,171,83,.038) 80%, transparent 90%),
+          linear-gradient(90deg, #100805 0 10px, #4e2916 11px, #1a0d08 15px, transparent 20px),
+          repeating-linear-gradient(0deg, rgba(231,201,139,.018) 0 1px, transparent 1px 5px),
+          linear-gradient(145deg,#321e13,#160d09 64%);
+        background-blend-mode: soft-light, screen, multiply, screen, normal;
+        box-shadow:
+          inset 15px 0 22px rgba(0,0,0,.52),
+          inset 0 1px rgba(236,181,93,.2),
+          -5px 0 0 #100906,
+          5px 0 0 #9c713d,
+          8px 0 0 #2c1a10,
+          11px 0 0 #b18450,
+          14px 0 0 #1a0f09;
+      }
+      .mobile-book::before { position: absolute; inset: 9px; content: ""; border: 1px solid rgba(201,139,55,.34); box-shadow: inset 0 0 28px rgba(0,0,0,.26), 0 0 8px rgba(220,159,71,.08); pointer-events: none; }
+      .mobile-head { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+      .mobile-head .brand { font-size: 18px; }
+      .mobile-head .brand::before { width: 11px; height: 11px; }
+      .mobile-chapter { color: #b27a31; font-family: Georgia, serif; font-size: 10px; }
+      .mobile-title { position: relative; z-index: 2; margin-bottom: 14px; color: #d99d48; font-family: "Songti SC", STSong, serif; font-size: 26px; font-weight: 500; }
+      .mobile-book .photo { position: relative; z-index: 2; height: 305px; border-radius: 4px; }
+      .mobile-book .photo-copy h2 { font-size: 27px; }
+      .mobile-section { position: relative; z-index: 2; margin-top: 16px; }
+      .mobile-book .section-heading { font-size: 19px; }
+      .mobile-book .gold-button { position: absolute; z-index: 13; right: 20px; bottom: 22px; left: 22px; }
+      .mobile-folio { position: absolute; z-index: 12; right: 15px; bottom: 76px; color: #a77939; font-family: Georgia, serif; font-size: 11px; }
+      .mobile-footer-rule { position: absolute; z-index: 11; right: 28px; bottom: 76px; left: 30px; height: 1px; background: linear-gradient(90deg, rgba(183,123,40,.28), rgba(231,201,139,.58), rgba(183,123,40,.16)); }
+      .mobile-page-link { position: absolute; z-index: 13; right: 46px; bottom: 32px; color: #d8a24e; font-family: "Songti SC", STSong, Georgia, serif; font-size: 16px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 8px rgba(183,123,40,.2); }
+      .mobile-page-link span { display: inline-block; margin-left: 8px; font-family: Georgia, serif; font-size: 20px; font-weight: 400; }
+      .page-link-layout .mobile-folio { right: auto; bottom: 35px; left: 50%; transform: translateX(-50%); }
+      .mobile-curl {
+        position: absolute;
+        z-index: 10;
+        right: 0;
+        bottom: 0;
+        width: 128px;
+        height: 150px;
+        clip-path: polygon(100% 0,100% 100%,0 100%,20% 86%,42% 63%,61% 37%,76% 14%);
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.67' numOctaves='3' seed='21'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E"),
+          linear-gradient(139deg, transparent 0 42%, rgba(237,190,110,.3) 45%, #a87138 47%, #3f2415 50%, #23130c 65%, #100805 100%);
+        background-blend-mode: soft-light, normal;
+        filter: drop-shadow(-10px -11px 10px rgba(0,0,0,.65));
+      }
+      .mobile-curl::before { position:absolute; right:-17px; bottom:69px; width:166px; height:1px; content:""; background:linear-gradient(90deg,transparent,rgba(246,205,132,.75),rgba(82,46,23,.3),transparent); box-shadow:0 2px 6px rgba(0,0,0,.7); transform:rotate(-51deg); }
+      .mobile-curl::after { position:absolute; right:15px; bottom:11px; content:"✦"; color:rgba(218,157,69,.7); font-size:20px; }
+      .mobile-radar-row { display: grid; grid-template-columns: 122px 1fr; gap: 12px; align-items: center; }
+      .mobile-radar { position: relative; width: 118px; height: 118px; }
+      .mobile-radar .radar-ring { inset: 8px; }.mobile-radar .radar-fill { inset: 28px 20px 15px 25px; }
+      .mobile-story { color: #b68c50; font-size: 12px; line-height: 1.65; }
+      .mobile-fields { position: relative; z-index: 2; display: grid; gap: 7px; }
+      .mobile-fields .manuscript-field strong { font-size: 23px; }
+      .mobile-ingredients { position: relative; z-index: 2; display: grid; gap: 9px; }
+      .mobile-ing { display: grid; grid-template-columns: 30px 1fr 74px 54px; gap: 8px; align-items: center; padding: 10px; border: 1px solid var(--line-soft); }
+      .mobile-ing .stepper { height: 34px; }
+      .mobile-preview-meta { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+      .mobile-preview-meta div { padding: 9px 5px; border: 1px solid var(--line-soft); text-align: center; }
+      .mobile-preview-meta small { display: block; color: #91642f; font-size: 9px; }
+      .mobile-preview-meta b { font-size: 12px; }
+      .mobile-notebook { position: relative; z-index: 2; display: grid; gap: 10px; }
+      .mobile-notebook .recipe-entry { padding: 13px 40px 13px 13px; }
+      .mobile-library { position: relative; z-index: 2; }
+      .mobile-library .library-row { padding: 11px; }
+      .mobile-auth { position: relative; z-index: 2; display: grid; gap: 13px; }
+      .emboss-layer {
+        position: absolute;
+        right: 48px;
+        bottom: 44px;
+        left: 10px;
+        z-index: 1;
+        height: 150px;
+        color: #a87332;
+        opacity: 0.46;
+        pointer-events: none;
+        filter:
+          drop-shadow(0 1px 0 rgba(232, 180, 92, 0.24))
+          drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.82));
+        mix-blend-mode: screen;
+      }
+      .emboss-layer svg { width: 100%; height: 100%; overflow: visible; }
+      .emboss-botanical {
+        color: #b17b36;
+        opacity: 0.4;
+        filter:
+          drop-shadow(0 0.55px 0 rgba(235, 188, 105, 0.2))
+          drop-shadow(0 -0.6px 0 rgba(0, 0, 0, 0.9));
+      }
+      .emboss-layer .emboss-fine { stroke-width: 0.46; opacity: 0.58; }
+      .emboss-layer .emboss-ghost { stroke-width: 0.42; opacity: 0.34; }
+      .emboss-layer .emboss-node { fill: currentColor; stroke: none; opacity: 0.72; }
+      .emboss-layer path,
+      .emboss-layer circle,
+      .emboss-layer ellipse,
+      .emboss-layer line,
+      .emboss-layer polyline,
+      .emboss-layer polygon,
+      .emboss-layer rect {
+        vector-effect: non-scaling-stroke;
+      }
+
+      @media (max-width: 500px) {
+        .topbar, .book { display: none; }
+      }
+    </style>
+  </head>
+  <body class="desktop spread-1">
+    <section class="desktop-spread s1">
+      <header class="topbar"><div class="brand">WishToday</div><span class="top-divider"></span><div class="volume-title">今夜酒单</div></header>
+      <main class="book">
+        <article class="leaf left">
+          <h1 class="chapter-title">第一章 · 今夜推荐</h1><div class="chapter-rule"></div>
+          <div class="home-intro"><p class="eyebrow">Tonight's Seven</p><h2 class="ink-title">让今晚有一杯答案</h2><p class="muted">从一杯经典鸡尾酒开始，稍微改造，沉淀成你的私人配方。</p></div>
+          <section class="photo recommend-photo"><img src="../../public/mock/cocktails/old-fashioned.png" alt="古典鸡尾酒" /><div class="photo-copy"><p class="eyebrow">威士忌 · 偏高</p><h2>古典鸡尾酒</h2><p>温暖、缓慢、认真，适合今晚把节奏降下来。</p><div class="tags"><span class="tag">橡木焦糖</span><span class="tag">苦韵回甘</span></div></div></section>
+          <div class="recommend-controls"><div class="dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="tiny-arrows"><span>‹</span><span>›</span></div></div>
+          <span class="circle-nav prev">←</span>
+        </article>
+        <article class="leaf right">
+          <h1 class="chapter-title">第二章 · 古典鸡尾酒</h1><div class="chapter-rule"></div>
+          <div class="detail-grid"><section class="photo detail-photo"><img src="../../public/mock/cocktails/old-fashioned.png" alt="古典鸡尾酒" /></section><section><p class="eyebrow">Old Fashioned</p><h2 class="ink-title">古典鸡尾酒</h2><p class="story">十九世纪初，这杯酒以烈酒、糖、苦精和水回到鸡尾酒最朴素的原点。橙皮香气与威士忌的木桶风味，让它成为跨越时代的经典。</p><div class="facts"><div class="fact"><small>基酒</small><b>威士忌</b></div><div class="fact"><small>杯型</small><b>古典杯</b></div><div class="fact"><small>酒精度</small><b>偏高</b></div></div></section></div>
+          <div class="flavor-layout"><div><h3 class="section-heading">风味图谱</h3><div class="radar"><div class="radar-ring"></div><div class="radar-fill"></div><span class="radar-label top">甜度</span><span class="radar-label tr">苦度</span><span class="radar-label br">酸度</span><span class="radar-label bottom">香气</span><span class="radar-label bl">酒精</span><span class="radar-label tl">酒感</span></div></div><div class="detail-sections"><section><h3 class="section-heading">配料清单</h3><div class="line-list"><div class="line-item"><span>波本威士忌</span><b>45 ml</b></div><div class="line-item"><span>糖浆</span><b>8 ml</b></div><div class="line-item"><span>芳香苦精</span><b>2 dash</b></div></div></section><section><h3 class="section-heading">调酒师笔记</h3><p class="story">不要过度搅拌，橙皮香气是这杯酒的关键。</p></section></div></div>
+          <div class="page-curl"></div><div class="curl-label">翻至实验台<b>→</b></div><span class="circle-nav next">→</span>
+        </article>
+        <div class="folio">01–02 / 08</div>
+      </main>
+    </section>
+
+    <section class="desktop-spread s2">
+      <header class="topbar"><div class="brand">WishToday</div><span class="top-divider"></span><div class="volume-title">DIY 调酒实验台</div></header>
+      <main class="book">
+        <article class="leaf left">
+          <h1 class="chapter-title">第三章 · 配方</h1><div class="chapter-rule"></div>
+          <div class="source-line">基于 <span class="source-pill">古典鸡尾酒</span> 改造 <span class="ornament"></span></div>
+          <div class="manuscript-field"><label>配方名称</label><strong>古典鸡尾酒改造版</strong></div><div class="manuscript-field"><label>英文名</label><strong>Old Fashioned</strong></div>
+          <div class="recipe-visual"><section class="photo recipe-photo"><img src="../../public/mock/cocktails/old-fashioned.png" alt="古典鸡尾酒" /></section><div class="measure-art"><div class="measure-lines"><span>60ml</span><span>45ml</span><span>30ml</span><span>15ml</span></div></div></div>
+          <span class="circle-nav prev">←</span>
+        </article>
+        <article class="leaf right">
+          <h1 class="chapter-title">第四章 · 配料与风味</h1><div class="chapter-rule"></div>
+          <div class="outline-button add-button">＋　添加材料</div>
+          <div class="ingredient-table"><div class="ingredient-head"><span>#</span><span>材料</span><span>用量</span><span>单位</span><span>操作</span></div><div class="ingredient-row"><span class="step-num">1</span><b>波本威士忌</b><span class="stepper">−　45　＋</span><span class="unit-box">ml⌄</span><span class="trash">□</span></div><div class="ingredient-row"><span class="step-num">2</span><b>糖浆</b><span class="stepper">−　8　＋</span><span class="unit-box">ml⌄</span><span class="trash">□</span></div><div class="ingredient-row"><span class="step-num">3</span><b>芳香苦精</b><span class="stepper">−　2　＋</span><span class="unit-box">dash</span><span class="trash">□</span></div></div>
+          <div class="workbench-bottom"><section><h3 class="section-heading">风味标签</h3><div class="tags"><span class="tag">橡木焦糖</span><span class="tag">苦韵回甘</span><span class="tag">鲜果微酸</span><span class="tag">辛香提神</span></div></section><section><h3 class="section-heading">我的备注</h3><div class="note-area">少糖，橙皮多挤一点。</div></section></div>
+          <div class="page-curl"></div><div class="curl-label">翻至预览<b>→</b></div><span class="circle-nav next">→</span>
+        </article>
+        <div class="folio">03–04 / 08</div>
+      </main>
+    </section>
+
+    <section class="desktop-spread s3">
+      <header class="topbar"><div class="brand">WishToday</div><span class="top-divider"></span><div class="volume-title">配方预览与保存</div></header>
+      <main class="book">
+        <article class="leaf left">
+          <h1 class="chapter-title">第五章 · 预览成品</h1><div class="chapter-rule"></div>
+          <p class="eyebrow">改造自 古典鸡尾酒</p><h2 class="preview-name">古典鸡尾酒改造版</h2><p class="muted">这是保存前的最后确认。只会保存到私人笔记本，不发布、不分享。</p>
+          <div class="preview-meta"><div><small>英文名</small><b>Old Fashioned</b></div><div><small>基酒</small><b>威士忌</b></div><div><small>材料数</small><b>3</b></div></div>
+          <div class="recipe-detail-grid"><section class="outline-panel"><h3 class="section-heading">配料总览</h3><div class="line-list"><div class="line-item"><span>波本威士忌</span><b>45 ml</b></div><div class="line-item"><span>糖浆</span><b>8 ml</b></div><div class="line-item"><span>芳香苦精</span><b>2 dash</b></div></div></section><section class="outline-panel"><h3 class="section-heading">调制顺序</h3><ol class="step-list"><li>杯中加入糖浆与苦精</li><li>加入威士忌和冰块</li><li>轻柔搅拌并释放橙皮香气</li></ol></section></div>
+          <div class="personal-note"><span class="eyebrow">我的备注</span><br />少糖，橙皮多挤一点。</div><div class="preview-actions"><div class="outline-button">← 返回编辑</div><div class="gold-button">保存到私人笔记本</div></div>
+          <span class="circle-nav prev">←</span>
+        </article>
+        <article class="leaf right">
+          <h1 class="chapter-title">第六章 · 登录保存</h1><div class="chapter-rule"></div>
+          <div class="auth-wrap"><div class="auth-tabs"><span class="auth-tab active">登录</span><span class="auth-tab">注册</span></div><p class="auth-copy">登录后会继续刚才的保存动作，不会跳回首页。</p><div class="auth-form"><div class="auth-field"><label>账号</label><div class="auth-input">guest@wishtoday.local</div></div><div class="auth-field"><label>密码</label><div class="auth-input">••••••••••</div></div><div class="privacy-note">WishToday 只在保存配方或访问私人笔记本时请求登录。</div><div class="gold-button">登录并继续　→</div><div class="outline-button">还没有账号？创建 WishToday 账号</div></div></div>
+          <div class="page-curl"></div><div class="curl-label">翻至笔记本<b>→</b></div><span class="circle-nav next">→</span>
+        </article>
+        <div class="folio">05–06 / 08</div>
+      </main>
+    </section>
+
+    <section class="desktop-spread s4">
+      <header class="topbar"><div class="brand">WishToday</div><span class="top-divider"></span><div class="volume-title">私人笔记本</div></header>
+      <main class="book">
+        <article class="leaf left">
+          <h1 class="chapter-title">第七章 · 我的配方</h1><div class="chapter-rule"></div>
+          <div class="notebook-filter"><div><p class="eyebrow">Private Codex</p><h2 class="ink-title">沉淀你的调酒记录</h2></div><div class="wax-seal">WT</div></div>
+          <div class="notebook-list"><article class="recipe-entry"><h3>古典鸡尾酒改造版</h3><p>Old Fashioned · 改造自古典鸡尾酒 · 今天</p><div class="tags"><span class="tag">橡木焦糖</span><span class="tag">苦韵回甘</span></div></article><article class="recipe-entry"><h3>青柠金汤力</h3><p>Gin and Tonic · 改造自金汤力 · 昨天</p><div class="tags"><span class="tag">清冽草本</span><span class="tag">鲜果微酸</span></div></article><article class="recipe-entry"><h3>夜色浓缩马天尼</h3><p>Espresso Martini · 4 个材料</p><div class="tags"><span class="tag">烘香浓醇</span><span class="tag">苦韵回甘</span></div></article></div>
+          <span class="circle-nav prev">←</span>
+        </article>
+        <article class="leaf right">
+          <h1 class="chapter-title">第八章 · 私人配方</h1><div class="chapter-rule"></div>
+          <div class="saved-banner"><div class="wax-seal">✓</div><div><b>已保存到 WishToday 私人笔记本</b><p>创建于今天 21:30</p></div></div>
+          <p class="eyebrow">改造自 古典鸡尾酒</p><h2 class="preview-name">古典鸡尾酒改造版</h2><div class="tags"><span class="tag">橡木焦糖</span><span class="tag">苦韵回甘</span></div>
+          <div class="recipe-detail-grid" style="margin-top:18px"><section><h3 class="section-heading">配料清单</h3><div class="line-list"><div class="line-item"><span>波本威士忌</span><b>45 ml</b></div><div class="line-item"><span>糖浆</span><b>8 ml</b></div><div class="line-item"><span>芳香苦精</span><b>2 dash</b></div></div></section><section><h3 class="section-heading">调制顺序</h3><ol class="step-list"><li>加入糖浆与苦精</li><li>加入威士忌和冰块</li><li>搅拌后释放橙皮香气</li></ol></section></div>
+          <div class="personal-note"><span class="eyebrow">我的备注</span><br />少糖，橙皮多挤一点。今晚的版本更干爽。</div><div class="gold-button" style="margin-top:18px">←　返回私人笔记本</div>
+          <span class="circle-nav next">→</span>
+        </article>
+        <div class="folio">07–08 / 08</div>
+      </main>
+    </section>
+
+    <section class="desktop-spread s5">
+      <header class="topbar"><div class="brand">WishToday</div><span class="top-divider"></span><div class="volume-title">关键组件与状态</div></header>
+      <main class="book">
+        <article class="leaf left">
+          <h1 class="chapter-title">附录 A · 添加材料</h1><div class="chapter-rule"></div>
+          <p class="muted" style="text-align:center;margin-bottom:16px">从材料库补充新的风味，并保持当前配方顺序。</p>
+          <div class="search-box">⌕　搜索材料</div><div class="category-row"><span class="category active">基酒</span><span class="category">利口酒</span><span class="category">果汁</span><span class="category">糖浆</span><span class="category">香草</span><span class="category">装饰</span></div>
+          <div class="library-list"><div class="library-row"><div><b>波本威士忌</b><p>基酒 · 中高酒精度 · 香草与橡木桶气息</p></div><span class="mini-add added">已添加</span></div><div class="library-row"><div><b>金酒</b><p>基酒 · 中等酒精度 · 杜松子与草本香气</p></div><span class="mini-add">＋ 添加</span></div><div class="library-row"><div><b>白朗姆</b><p>基酒 · 中等酒精度 · 清爽甘蔗气息</p></div><span class="mini-add">＋ 添加</span></div><div class="library-row"><div><b>龙舌兰</b><p>基酒 · 中高酒精度 · 植物与烘烤风味</p></div><span class="mini-add">＋ 添加</span></div></div>
+          <span class="circle-nav prev">←</span>
+        </article>
+        <article class="leaf right">
+          <h1 class="chapter-title">附录 B · 注册与空状态</h1><div class="chapter-rule"></div>
+          <div class="recipe-detail-grid"><section><div class="auth-tabs"><span class="auth-tab">登录</span><span class="auth-tab active">注册</span></div><div class="auth-form"><div class="auth-field"><label>昵称</label><div class="auth-input">调酒新手</div></div><div class="auth-field"><label>账号</label><div class="auth-input">guest@wishtoday.local</div></div><div class="auth-field"><label>密码</label><div class="auth-input">••••••••</div></div><div class="auth-field"><label>确认密码</label><div class="auth-input">••••••••</div></div><div class="gold-button">注册并继续　→</div></div></section><section><h3 class="section-heading">私人笔记本空状态</h3><div class="empty-state"><div class="wax-seal">WT</div><h3>还没有保存任何配方</h3><p>去首页找一杯今天想喝的酒，从经典配方开始改造。</p><div class="outline-button" style="width:100%">去首页找一杯酒</div></div><h3 class="section-heading" style="margin-top:18px">反馈状态</h3><div class="saved-banner"><span>✓</span><span>配方保存成功</span></div></section></div>
+          <span class="circle-nav next">→</span>
+        </article>
+        <div class="folio">APPENDIX</div>
+      </main>
+    </section>
+
+    <section class="mobile-screen m1"><main class="mobile-book"><header class="mobile-head"><div class="brand">WishToday</div><span class="mobile-chapter">CHAPTER 01</span></header><h1 class="mobile-title">今夜推荐</h1><section class="photo"><img src="../../public/mock/cocktails/old-fashioned.png" alt="古典鸡尾酒" /><div class="photo-copy"><p class="eyebrow">Old Fashioned</p><h2>古典鸡尾酒</h2><p>温暖、缓慢、认真，适合今晚把节奏降下来。</p><div class="tags"><span class="tag">橡木焦糖</span><span class="tag">苦韵回甘</span></div></div></section><section class="mobile-section"><p class="eyebrow">Tonight's Seven</p><h2 class="section-heading">让今晚有一杯答案</h2><div class="recommend-controls"><div class="dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="tiny-arrows"><span>‹</span><span>›</span></div></div></section><span class="mobile-folio">01 / 08</span><div class="mobile-curl"></div></main></section>
+    <section class="mobile-screen m2"><main class="mobile-book page-link-layout"><header class="mobile-head"><div class="brand">WishToday</div><span class="mobile-chapter">CHAPTER 02</span></header><h1 class="mobile-title">古典鸡尾酒</h1><section class="photo"><img src="../../public/mock/cocktails/old-fashioned.png" alt="古典鸡尾酒" /><div class="photo-copy"><p class="eyebrow">Old Fashioned</p><p>温暖、缓慢、认真，适合今晚把节奏降下来。</p></div></section><section class="mobile-section mobile-radar-row"><div class="mobile-radar"><div class="radar-ring"></div><div class="radar-fill"></div></div><p class="mobile-story"><b>背后的故事</b><br />十九世纪初，这杯酒回到鸡尾酒最朴素的原点。</p></section><section class="mobile-section"><h2 class="section-heading">配料清单</h2><div class="line-list"><div class="line-item"><span>波本威士忌</span><b>45 ml</b></div><div class="line-item"><span>糖浆</span><b>8 ml</b></div><div class="line-item"><span>芳香苦精</span><b>2 dash</b></div></div></section><div class="mobile-footer-rule"></div><div class="mobile-page-link">DIY<span>→</span></div><span class="mobile-folio">02 / 08</span><div class="mobile-curl"></div></main></section>
+    <section class="mobile-screen m3"><main class="mobile-book page-link-layout"><header class="mobile-head"><div class="brand">WishToday</div><span class="mobile-chapter">CHAPTER 03–04</span></header><h1 class="mobile-title">DIY 调酒实验台</h1><div class="mobile-fields"><div class="source-line">基于 <span class="source-pill">古典鸡尾酒</span> 改造</div><div class="manuscript-field"><label>配方名称</label><strong>古典鸡尾酒改造版</strong></div><div class="manuscript-field"><label>英文名</label><strong>Old Fashioned</strong></div></div><section class="mobile-section"><div class="notebook-filter"><h2 class="section-heading">已选材料</h2><span class="outline-button" style="padding:0 12px">＋ 添加</span></div><div class="mobile-ingredients"><div class="mobile-ing"><span>1</span><b>波本威士忌</b><span class="stepper">− 45 +</span><span>ml</span></div><div class="mobile-ing"><span>2</span><b>糖浆</b><span class="stepper">− 8 +</span><span>ml</span></div><div class="mobile-ing"><span>3</span><b>芳香苦精</b><span class="stepper">− 2 +</span><span>dash</span></div></div></section><section class="mobile-section"><h2 class="section-heading">风味标签</h2><div class="tags"><span class="tag">橡木焦糖</span><span class="tag">苦韵回甘</span><span class="tag">鲜果微酸</span></div></section><div class="mobile-footer-rule"></div><div class="mobile-page-link">预览成品<span>→</span></div><span class="mobile-folio">03–04 / 08</span><div class="mobile-curl"></div></main></section>
+    <section class="mobile-screen m4"><main class="mobile-book page-link-layout"><header class="mobile-head"><div class="brand">WishToday</div><span class="mobile-chapter">CHAPTER 05</span></header><p class="eyebrow">改造自 古典鸡尾酒</p><h1 class="mobile-title" style="font-size:30px;margin-top:7px">古典鸡尾酒改造版</h1><div class="mobile-preview-meta"><div><small>英文名</small><b>Old Fashioned</b></div><div><small>基酒</small><b>威士忌</b></div><div><small>材料数</small><b>3</b></div></div><section class="mobile-section outline-panel"><h2 class="section-heading">配料总览</h2><div class="line-list"><div class="line-item"><span>波本威士忌</span><b>45 ml</b></div><div class="line-item"><span>糖浆</span><b>8 ml</b></div><div class="line-item"><span>芳香苦精</span><b>2 dash</b></div></div></section><section class="mobile-section outline-panel"><h2 class="section-heading">调制顺序</h2><ol class="step-list"><li>加入糖浆与苦精</li><li>加入威士忌和冰块</li><li>搅拌后释放橙皮香气</li></ol></section><div class="personal-note"><span class="eyebrow">我的备注</span><br />少糖，橙皮多挤一点。</div><div class="mobile-footer-rule"></div><div class="mobile-page-link">保存笔记<span>→</span></div><span class="mobile-folio">05 / 08</span><div class="mobile-curl"></div></main></section>
+    <section class="mobile-screen m5"><main class="mobile-book"><header class="mobile-head"><div class="brand">WishToday</div><span class="mobile-chapter">CHAPTER 07</span></header><h1 class="mobile-title">私人笔记本</h1><section class="mobile-notebook"><article class="recipe-entry"><h3>古典鸡尾酒改造版</h3><p>Old Fashioned · 今天 · 3 个材料</p><div class="tags"><span class="tag">橡木焦糖</span><span class="tag">苦韵回甘</span></div></article><article class="recipe-entry"><h3>青柠金汤力</h3><p>Gin and Tonic · 昨天 · 3 个材料</p><div class="tags"><span class="tag">清冽草本</span><span class="tag">鲜果微酸</span></div></article><article class="recipe-entry"><h3>夜色浓缩马天尼</h3><p>Espresso Martini · 4 个材料</p><div class="tags"><span class="tag">烘香浓醇</span></div></article></section><span class="mobile-folio">07 / 08</span><div class="mobile-curl"></div></main></section>
+    <section class="mobile-screen m6"><main class="mobile-book page-link-layout"><header class="mobile-head"><div class="brand">WishToday</div><span class="mobile-chapter">APPENDIX A</span></header><h1 class="mobile-title">添加材料</h1><section class="mobile-library"><div class="search-box">⌕　搜索材料</div><div class="category-row"><span class="category active">基酒</span><span class="category">利口酒</span><span class="category">果汁</span><span class="category">糖浆</span></div><div class="library-list"><div class="library-row"><div><b>波本威士忌</b><p>香草与橡木桶气息</p></div><span class="mini-add added">已添加</span></div><div class="library-row"><div><b>金酒</b><p>杜松子与草本香气</p></div><span class="mini-add">＋ 添加</span></div><div class="library-row"><div><b>白朗姆</b><p>清爽甘蔗气息</p></div><span class="mini-add">＋ 添加</span></div><div class="library-row"><div><b>龙舌兰</b><p>植物与烘烤风味</p></div><span class="mini-add">＋ 添加</span></div></div></section><div class="mobile-footer-rule"></div><div class="mobile-page-link">完成添加<span>→</span></div><span class="mobile-folio">APPENDIX</span><div class="mobile-curl"></div></main></section>
+    <section class="mobile-screen m7"><main class="mobile-book"><header class="mobile-head"><div class="brand">WishToday</div><span class="mobile-chapter">CHAPTER 06</span></header><h1 class="mobile-title">登录后保存配方</h1><section class="mobile-auth"><div class="auth-tabs"><span class="auth-tab active">登录</span><span class="auth-tab">注册</span></div><p class="auth-copy">登录后会继续刚才的保存动作，不会跳回首页。</p><div class="auth-field"><label>账号</label><div class="auth-input">guest@wishtoday.local</div></div><div class="auth-field"><label>密码</label><div class="auth-input">••••••••••</div></div><div class="privacy-note">WishToday 只在保存配方或访问私人笔记本时请求登录。</div><div class="outline-button">还没有账号？去注册</div></section><div class="gold-button">登录并继续　→</div><span class="mobile-folio">06 / 08</span><div class="mobile-curl"></div></main></section>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const mode = params.get("mode") || "desktop";
+      const index = params.get(mode === "desktop" ? "spread" : "screen") || "1";
+      document.body.className = `${mode} ${mode === "desktop" ? "spread" : "screen"}-${index}`;
+      document.querySelectorAll(".leaf, .mobile-book").forEach((page) => {
+        const wear = document.createElement("span");
+        wear.className = "surface-wear";
+        wear.setAttribute("aria-hidden", "true");
+        page.prepend(wear);
+      });
+      const emboss = params.get("emboss");
+      const visibleMobileBook = [...document.querySelectorAll(".mobile-screen")]
+        .find((screen) => getComputedStyle(screen).display !== "none")
+        ?.querySelector(".mobile-book");
+      const embosses = {
+        botanical: `
+          <svg viewBox="0 0 330 190" fill="none" stroke="currentColor" stroke-width="0.72" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <g transform="translate(4 3)">
+              <path d="M25 178C45 153 59 129 68 101C78 70 78 39 102 7"/>
+              <path d="M40 151C27 151 16 145 7 134C20 132 33 136 45 144C38 142 27 140 14 136"/>
+              <path d="M52 128C37 125 27 116 21 103C36 103 49 109 58 120C49 116 39 112 27 107"/>
+              <path d="M63 99C48 93 40 82 38 67C52 72 63 81 68 91C60 84 52 79 43 73"/>
+              <path d="M70 73C57 64 52 51 55 37C68 45 76 55 76 67C70 58 65 51 59 44"/>
+              <path d="M81 43C78 27 85 14 99 4C101 20 96 33 85 43C91 31 95 21 97 10"/>
+              <path d="M43 151C55 142 69 140 82 146C72 157 58 160 45 156C56 153 66 150 77 147"/>
+              <path d="M54 127C68 119 82 120 94 128C83 138 69 139 57 133C68 130 78 129 89 130"/>
+              <path d="M64 99C79 93 93 97 103 106C90 114 77 112 67 105C77 104 88 105 98 108"/>
+              <path d="M73 73C87 69 100 74 108 84C95 90 83 86 75 79C86 80 95 82 104 85"/>
+              <path class="emboss-fine" d="M27 178C38 166 50 159 63 157M37 154C45 163 49 170 50 178M50 131C57 140 60 149 59 158M61 102C68 113 70 123 68 133M69 75C76 84 78 94 77 104M80 45C84 55 84 66 81 77"/>
+              <g class="emboss-fine"><circle cx="17" cy="134" r="1.25"/><circle cx="21" cy="103" r="1.25"/><circle cx="38" cy="67" r="1.25"/><circle cx="55" cy="37" r="1.25"/><circle cx="99" cy="4" r="1.25"/></g>
+              <g class="emboss-ghost"><path d="M3 181H105"/><path d="M9 185H68"/><path d="M5 176v10M105 176v10"/></g>
+            </g>
+            <g transform="translate(142 8)">
+              <circle cx="88" cy="84" r="72"/><circle class="emboss-fine" cx="88" cy="84" r="63"/><circle class="emboss-ghost" cx="88" cy="84" r="52" stroke-dasharray="1 3"/><circle class="emboss-fine" cx="88" cy="84" r="39"/>
+              <g class="emboss-ghost"><line x1="88" y1="5" x2="88" y2="163"/><line x1="9" y1="84" x2="167" y2="84"/><line x1="32" y1="28" x2="144" y2="140"/><line x1="144" y1="28" x2="32" y2="140"/><line x1="19" y1="45" x2="157" y2="123"/><line x1="157" y1="45" x2="19" y2="123"/></g>
+              <path d="M88 12L139 39L159 92L127 145L65 151L18 109L25 48Z"/>
+              <path class="emboss-fine" d="M25 48C49 59 56 39 88 12C98 45 123 49 139 39C133 71 148 79 159 92C127 95 127 122 127 145C104 125 80 139 65 151C63 120 39 113 18 109C44 90 37 67 25 48Z"/>
+              <path d="M47 51L69 67L84 53L104 73L131 59L145 91L119 108L132 128L98 122L78 143L67 115L37 106L56 85Z" stroke-dasharray="2.4 3.8"/>
+              <path class="emboss-fine" d="M38 75A54 54 0 0 1 111 34M56 132A58 58 0 0 0 143 105M22 94A68 68 0 0 0 98 155"/>
+              <polygon points="88,67 93,78 105,79 96,87 99,99 88,93 77,99 80,87 71,79 83,78"/>
+              <circle class="emboss-fine" cx="88" cy="84" r="11"/><circle class="emboss-node" cx="88" cy="12" r="1.8"/><circle class="emboss-node" cx="139" cy="39" r="1.8"/><circle class="emboss-node" cx="159" cy="92" r="1.8"/><circle class="emboss-node" cx="127" cy="145" r="1.8"/><circle class="emboss-node" cx="65" cy="151" r="1.8"/><circle class="emboss-node" cx="18" cy="109" r="1.8"/><circle class="emboss-node" cx="25" cy="48" r="1.8"/>
+              <g class="emboss-fine"><path d="M88 4v8M123 13l-4 8M151 36l-8 4M166 71l-8 2M166 110l-8-3M145 143l-7-6M109 160l-2-8M70 162l2-8M36 145l6-6M14 116l8-3M10 77l8 2M25 40l8 4M54 15l4 8"/></g>
+              <path d="M161 19l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/>
+              <g class="emboss-ghost"><circle cx="50" cy="35" r="1.2"/><circle cx="116" cy="31" r="1.2"/><circle cx="149" cy="70" r="1.2"/><circle cx="140" cy="120" r="1.2"/><circle cx="101" cy="145" r="1.2"/><circle cx="45" cy="126" r="1.2"/><circle cx="26" cy="82" r="1.2"/></g>
+            </g>
+          </svg>`,
+        barware: `
+          <svg viewBox="0 0 330 190" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <g transform="translate(5 5)">
+              <path d="M18 42H126L116 158H29Z"/><ellipse cx="72" cy="42" rx="54" ry="12"/>
+              <ellipse cx="72" cy="43" rx="44" ry="8"/><path d="M32 105C52 96 87 112 114 91"/>
+              <path d="M43 55L37 144M101 55L108 143M61 52L58 149M84 52L87 149" opacity=".7"/>
+              <path d="M38 84L111 128M35 112L106 67M55 51L113 102M29 124L91 54" opacity=".45"/>
+              <path d="M89 27C102 10 124 8 139 16C127 32 110 39 92 36"/>
+              <path d="M96 30C110 25 121 20 132 15"/>
+            </g>
+            <g transform="translate(157 8)">
+              <path d="M35 8H84L78 76H41Z"/><ellipse cx="59" cy="8" rx="24" ry="6"/>
+              <path d="M46 76L42 119H77L73 76"/><ellipse cx="59" cy="119" rx="18" ry="5"/>
+              <path d="M104 19L139 154"/><ellipse cx="106" cy="18" rx="12" ry="5" transform="rotate(74 106 18)"/>
+              <circle cx="132" cy="150" r="11"/><circle cx="132" cy="150" r="6"/>
+              <circle cx="35" cy="150" r="28"/><circle cx="35" cy="150" r="20"/>
+              <path d="M35 122V178M7 150H63M15 130L55 170M55 130L15 170"/>
+              <line x1="90" y1="49" x2="144" y2="49"/><line x1="93" y1="62" x2="147" y2="62"/>
+              <text x="112" y="43" fill="currentColor" stroke="none" font-size="8" text-anchor="middle">45 ml</text>
+              <text x="116" y="75" fill="currentColor" stroke="none" font-size="8" text-anchor="middle">30 ml</text>
+            </g>
+          </svg>`,
+        alchemy: `
+          <svg viewBox="0 0 330 190" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <g transform="translate(74 0)">
+              <circle cx="92" cy="94" r="79"/><circle cx="92" cy="94" r="66" stroke-dasharray="1 5"/>
+              <circle cx="92" cy="94" r="48"/><polygon points="92,31 146,126 38,126"/>
+              <polygon points="92,157 38,62 146,62"/>
+              <circle cx="92" cy="94" r="18"/><path d="M92 73l6 13 14 2-10 10 2 14-12-7-12 7 2-14-10-10 14-2z"/>
+              <line x1="92" y1="4" x2="92" y2="184"/><line x1="2" y1="94" x2="182" y2="94"/>
+              <circle cx="92" cy="15" r="4"/><circle cx="160" cy="55" r="4"/><circle cx="160" cy="133" r="4"/><circle cx="92" cy="173" r="4"/><circle cx="24" cy="133" r="4"/><circle cx="24" cy="55" r="4"/>
+              <path d="M92 15C113 35 138 33 160 55M160 55C143 80 145 108 160 133M160 133C133 137 114 154 92 173M92 173C68 152 48 140 24 133M24 133C39 109 40 78 24 55M24 55C49 47 69 31 92 15" stroke-dasharray="3 4"/>
+            </g>
+            <g><path d="M16 26l4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/><circle cx="38" cy="75" r="9"/><path d="M33 75h10M38 70v10"/><path d="M17 144c17-14 29-13 44 0-15 15-28 15-44 0z"/><circle cx="39" cy="144" r="5"/></g>
+            <g transform="translate(286 0)"><path d="M16 26l4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/><path d="M2 142l14-23 14 23-14 23z"/><circle cx="16" cy="142" r="7"/></g>
+          </svg>`,
+      };
+      if (emboss && visibleMobileBook && embosses[emboss]) {
+        const layer = document.createElement("div");
+        layer.className = `emboss-layer emboss-${emboss}`;
+        layer.innerHTML = embosses[emboss];
+        visibleMobileBook.append(layer);
+      }
+    </script>
+  </body>
+</html>

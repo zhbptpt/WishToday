@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>WishToday 魔法书方案对比</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: #0d0806; }
+      body { padding: 18px; }
+      .sheet { display: grid; grid-template-columns: repeat(3, auto); gap: 18px; align-items: start; }
+      img { display: block; max-width: none; border: 1px solid rgba(201, 161, 90, 0.32); box-shadow: 0 16px 35px rgba(0,0,0,.48); }
+      body.desktop img { width: 698px; height: 706px; }
+      body.mobile img { width: 394px; height: 932px; }
+    </style>
+  </head>
+  <body class="desktop">
+    <main class="sheet">
+      <img src="magic-book-option-1-698.png" alt="方案一 典藏单页" />
+      <img src="magic-book-option-2-698.png" alt="方案二 摊开秘典" />
+      <img src="magic-book-option-3-698.png" alt="方案三 层叠活页" />
+    </main>
+    <script>
+      const mode = new URLSearchParams(location.search).get("mode") || "desktop";
+      document.body.className = mode;
+      if (mode === "mobile") {
+        document.querySelectorAll("img").forEach((image, index) => {
+          image.src = `magic-book-option-${index + 1}-394.png`;
+        });
+      }
+    </script>
+  </body>
+</html>

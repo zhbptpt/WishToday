@@ -1,0 +1,95 @@
+{
+  "name": "WishToday Emboss Library",
+  "version": 1,
+  "updatedAt": "2026-07-17",
+  "usageNotes": [
+    "Keep emboss decoration low contrast so it does not compete with page content.",
+    "Reference sheets are visual direction assets, not transparent production overlays.",
+    "Use the leather book background as the shared page surface for the current visual system."
+  ],
+  "assets": [
+    {
+      "id": "background-leather-book",
+      "title": "深棕皮革书页背景",
+      "category": "background",
+      "path": "/assets/emboss-library/backgrounds/leather-book-page.png",
+      "width": 815,
+      "height": 1930,
+      "status": "production",
+      "source": "/assets/wishtoday-diy-leather-book.png"
+    },
+    {
+      "id": "emboss-alchemy-reference",
+      "title": "炼金术单体浮雕应用稿",
+      "category": "alchemy",
+      "path": "/assets/emboss-library/reference-sheets/alchemy-page.png",
+      "width": 394,
+      "height": 932,
+      "status": "reference",
+      "source": "docs/design-explorations/wish-magic-book-emboss-alchemy.png"
+    },
+    {
+      "id": "emboss-barware-reference",
+      "title": "古老调酒器具浮雕应用稿",
+      "category": "barware",
+      "path": "/assets/emboss-library/reference-sheets/barware-page.png",
+      "width": 394,
+      "height": 932,
+      "status": "reference",
+      "source": "docs/design-explorations/wish-magic-book-emboss-barware.png"
+    },
+    {
+      "id": "emboss-botanical-reference",
+      "title": "草本植物与星盘浮雕应用稿",
+      "category": "botanical",
+      "path": "/assets/emboss-library/reference-sheets/botanical-page.png",
+      "width": 394,
+      "height": 932,
+      "status": "reference",
+      "source": "docs/design-explorations/wish-magic-book-emboss-botanical.png"
+    },
+    {
+      "id": "emboss-botanical-refined-reference",
+      "title": "草本植物与星盘浮雕精修稿",
+      "category": "botanical",
+      "path": "/assets/emboss-library/reference-sheets/botanical-page-refined-2x.png",
+      "width": 788,
+      "height": 1864,
+      "status": "preferred-reference",
+      "source": "docs/design-explorations/wish-magic-book-emboss-botanical-refined.png"
+    },
+    {
+      "id": "emboss-options-overview",
+      "title": "浮雕方向总览",
+      "category": "comparison",
+      "path": "/assets/emboss-library/reference-sheets/emboss-options-overview.png",
+      "width": 1246,
+      "height": 1010,
+      "status": "reference",
+      "source": "docs/design-explorations/wish-magic-book-emboss-options.png"
+    },
+    {
+      "id": "emboss-botanical-refinement-comparison",
+      "title": "草本浮雕精细度对比",
+      "category": "comparison",
+      "path": "/assets/emboss-library/reference-sheets/botanical-refinement-comparison.png",
+      "width": 820,
+      "height": 1010,
+      "status": "reference",
+      "source": "docs/design-explorations/wish-magic-book-emboss-botanical-refinement-comparison.png"
+    }
+  ],
+  "pendingImports": [
+    {
+      "sourceConversation": "6a59e033-3dc8-83ee-a105-278527aa5d4f",
+      "title": "浮雕纹生成请求",
+      "expectedCategories": [
+        "single-barware",
+        "herbal-specimens",
+        "alchemy-symbols",
+        "cocktail-motifs"
+      ],
+      "reason": "Referenced conversation context does not include the original generated image files."
+    }
+  ]
+}
