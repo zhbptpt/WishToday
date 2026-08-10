@@ -32,13 +32,15 @@ export function AppShell({
       ? "app-shell app-shell--book-background app-shell--leather-book"
       : pathname === paths.previewRecipe
         ? "app-shell app-shell--book-background app-shell--preview-book"
-          : pathname === paths.home
+        : pathname === paths.home
           ? "app-shell app-shell--book-background app-shell--home-book"
           : pathname.startsWith("/cocktails/")
             ? "app-shell app-shell--book-background app-shell--cocktail-detail-book"
-            : pathname.startsWith("/recipes/")
-              ? "app-shell app-shell--book-background app-shell--recipe-detail-book"
-            : "app-shell app-shell--book-background";
+            : pathname === paths.notebook
+              ? "app-shell app-shell--book-background app-shell--notebook-book"
+              : pathname.startsWith("/recipes/")
+                ? "app-shell app-shell--book-background app-shell--recipe-detail-book"
+                : "app-shell app-shell--book-background";
 
   return (
     <main className={shellClassName}>

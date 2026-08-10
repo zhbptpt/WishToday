@@ -4,7 +4,7 @@
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  font-synthesis: none;
+  font-synthesis: weight;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   --wt-brown-950: #18100c;
@@ -21,6 +21,11 @@
   --wt-text-sub: #c7ab7a;
   --wt-line: rgba(201, 161, 90, 0.22);
   --wt-shadow: rgba(0, 0, 0, 0.34);
+  --wt-font-weight-body: 500;
+  --wt-font-weight-heading: 600;
+  --wt-font-weight-numeric: 600;
+  --wt-font-weight-action: 700;
+  --wt-font-weight-brand: 800;
 }
 
 * {
@@ -2051,18 +2056,26 @@ textarea:focus {
 
 .app-shell--home-book .home-hero-frame {
   position: relative;
-  min-height: min(360px, 44.2vw);
+  min-height: min(430px, 64vw);
   align-content: center;
-  gap: 24px;
+  gap: 0;
   margin-bottom: 62px;
-  padding: clamp(22px, 5.6vw, 46px) clamp(18px, 4.4vw, 36px);
-  border: 1px solid rgba(201, 161, 90, 0.7);
+  padding: clamp(30px, 6.4vw, 54px) clamp(20px, 5vw, 42px);
+  border: 0;
   border-radius: 2px;
-  box-shadow: inset 0 0 0 3px rgba(16, 8, 5, 0.15);
+  box-shadow: none;
 }
 
-.home-frame-ornament,
-.home-card-ornament {
+.app-shell--home-book .home-hero-copy {
+  display: grid;
+  width: min(94%, 700px);
+  margin-inline: auto;
+  padding-inline-start: 7%;
+  gap: clamp(10px, 1.8vw, 18px);
+  align-content: center;
+}
+
+.home-frame-ornament {
   position: absolute;
   z-index: 3;
   display: inline-flex;
@@ -2079,8 +2092,7 @@ textarea:focus {
   transform: translate(-50%, -50%);
 }
 
-.home-frame-ornament--bottom,
-.home-card-ornament--bottom {
+.home-frame-ornament--bottom {
   top: auto;
   bottom: 0;
   transform: translate(-50%, 50%);
@@ -2117,39 +2129,54 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   gap: 9px;
+  color: #edc778;
   font-family: "Songti SC", STSong, Georgia, "Times New Roman", serif;
   font-size: 1rem;
   font-weight: 500;
   text-transform: none;
+  text-shadow: 0 -1px rgba(27, 13, 8, 0.8);
 }
 
 .app-shell--home-book .home-hero h1 {
   max-width: 100%;
-  color: #dfb86e;
-  font-size: clamp(2rem, 7.4vw, 4rem);
+  color: #f0cb7c;
+  font-size: clamp(2rem, 6.2vw, 3.65rem);
   font-weight: 400;
   line-height: 1.06;
   text-shadow:
-    0 1px rgba(239, 208, 138, 0.12),
-    0 -1px rgba(0, 0, 0, 0.82);
+    0 1px rgba(244, 215, 157, 0.18),
+    0 -1px rgba(20, 8, 4, 0.9),
+    0 2px 12px rgba(20, 8, 4, 0.4);
 }
 
 .app-shell--home-book .home-hero .lead {
-  max-width: 32ch;
-  color: #d4a95f;
+  max-width: 31ch;
+  color: #f0cd86;
   font-family: "Songti SC", STSong, Georgia, "Times New Roman", serif;
   font-size: 1rem;
-  line-height: 1.8;
+  font-weight: 500;
+  line-height: 1.72;
+  text-shadow:
+    0 -1px rgba(25, 10, 5, 0.92),
+    0 1px 8px rgba(20, 8, 4, 0.55);
 }
 
 .app-shell--home-book .recommendation-stage {
-  gap: 22px;
+  position: relative;
+  display: block;
+  width: 126.7%;
+  min-height: 664px;
+  margin-left: -17.2%;
 }
 
 .app-shell--home-book .home-section-title-row {
+  position: absolute;
+  top: 139px;
+  left: 0;
+  width: 100%;
   align-items: center;
-  padding: 0 0 14px 16px;
-  border-bottom: 1px solid rgba(201, 161, 90, 0.34);
+  padding: 0 6.2% 0 16%;
+  border-bottom: 0;
 }
 
 .app-shell--home-book .home-section-title-row > div:first-child {
@@ -2159,129 +2186,206 @@ textarea:focus {
 
 .app-shell--home-book .home-section-title-row .eyebrow {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .app-shell--home-book .home-section-title-row h2 {
-  color: #dfb86e;
-  font-size: clamp(1.55rem, 5vw, 2.55rem);
+  color: #3a1d10;
+  font-size: clamp(1.8rem, 5vw, 2.05rem);
   font-weight: 400;
+  line-height: 1.12;
 }
 
 .app-shell--home-book .home-carousel-controls {
-  gap: 14px;
+  gap: 11px;
 }
 
 .app-shell--home-book .home-carousel-controls .icon-button {
   width: 48px;
   height: 48px;
-  color: #dfb86e;
-  border-color: rgba(201, 161, 90, 0.58);
-  background: rgba(16, 8, 5, 0.32);
+  color: #e3bf78;
+  border-color: rgba(76, 43, 22, 0.14);
+  background: rgba(73, 44, 24, 0.43);
+  box-shadow: inset 0 1px rgba(241, 211, 158, 0.08);
 }
 
 .app-shell--home-book .home-feature-card {
-  aspect-ratio: 1.34 / 1;
-  overflow: hidden;
-  border-color: rgba(201, 161, 90, 0.72);
-  border-radius: 2px;
-  box-shadow:
-    inset 0 0 0 4px rgba(16, 8, 5, 0.74),
-    inset 0 0 0 5px rgba(201, 161, 90, 0.32);
+  position: absolute;
+  top: 282px;
+  left: 0;
+  width: 100%;
+  min-height: 430px;
+  aspect-ratio: auto;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  isolation: auto;
 }
 
-.app-shell--home-book .home-feature-card img {
+.app-shell--home-book .home-recommendation-image {
+  position: absolute;
+  top: 0;
+  left: 47%;
+  z-index: 1;
+  display: block;
+  width: 45%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.home-recommendation-image .home-feature-photo {
+  top: -20%;
+  left: -112%;
   z-index: 0;
-  object-position: center center;
-  transform: scale(1.12);
+  width: 255%;
+  height: 102.6%;
+  object-fit: contain;
+  object-position: center bottom;
+  transform: none;
+  pointer-events: none;
+}
+
+.app-shell--home-book .home-feature-photo--wash {
+  z-index: 0;
+  filter: sepia(1) saturate(1.48) hue-rotate(-8deg) contrast(0.9) brightness(0.87) blur(18px);
+  mix-blend-mode: multiply;
+  opacity: 0.46;
+  -webkit-mask-image: url("/assets/ink-wash/home-old-fashioned-wide-wash-v1.png");
+  -webkit-mask-position: 77% calc(50% + 16px);
+  -webkit-mask-size: 48% 92%;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: url("/assets/ink-wash/home-old-fashioned-wide-wash-v1.png");
+  mask-position: 77% calc(50% + 16px);
+  mask-size: 48% 92%;
+  mask-repeat: no-repeat;
+}
+
+.app-shell--home-book .home-feature-photo--subject {
+  z-index: 1;
+  filter: sepia(0.68) saturate(1.35) hue-rotate(-9deg) contrast(0.92) brightness(1.07);
+  mix-blend-mode: normal;
+  opacity: 0.93;
+  -webkit-mask-image: url("/assets/ink-wash/home-old-fashioned-wide-wash-v1.png");
+  -webkit-mask-position: 74% 69%;
+  -webkit-mask-size: 47% 84%;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: url("/assets/ink-wash/home-old-fashioned-wide-wash-v1.png");
+  mask-position: 74% 69%;
+  mask-size: 47% 84%;
+  mask-repeat: no-repeat;
+}
+
+.app-shell--home-book .home-feature-photo--subject.home-feature-photo--old-fashioned {
+  -webkit-mask-image: url("/assets/ink-wash/old-fashioned-glass-mask-v1.png");
+  -webkit-mask-position: center;
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: url("/assets/ink-wash/old-fashioned-glass-mask-v1.png");
+  mask-position: center;
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+}
+
+.app-shell--home-book .home-feature-photo--old-fashioned {
+  object-position: center bottom;
 }
 
 .app-shell--home-book .home-feature-card .card-sheen {
+  inset: -6%;
   z-index: 1;
-  background: linear-gradient(
-    90deg,
-    rgba(12, 6, 4, 0.98) 0%,
-    rgba(12, 6, 4, 0.96) 44%,
-    rgba(12, 6, 4, 0.72) 58%,
-    rgba(12, 6, 4, 0.24) 72%,
-    rgba(12, 6, 4, 0.08) 100%
-  );
+  background: none;
+  opacity: 0;
 }
 
-.home-card-ornament {
-  z-index: 3;
-  top: 0;
-  left: 50%;
-  width: 34px;
-  background: #21130c;
-  transform: translate(-50%, -50%);
-}
-
-.home-card-ornament.home-card-ornament--bottom {
-  top: auto;
-  bottom: 0;
-  transform: translate(-50%, 50%);
-}
-
-.app-shell--home-book .home-feature-card .cocktail-card-content {
+.app-shell--home-book .home-recommendation-copy {
+  position: absolute;
+  top: 35px;
+  right: auto;
+  bottom: auto;
+  left: 19%;
   z-index: 2;
-  inset: 0 auto 0 0;
-  width: 54%;
-  align-content: center;
-  gap: 12px;
-  padding: 30px 24px 28px 34px;
+  width: 36%;
+  gap: 10px;
+  padding: 0;
   font-family: "Songti SC", STSong, Georgia, "Times New Roman", serif;
 }
 
-.app-shell--home-book .home-feature-card .cocktail-card-content strong {
-  color: #efcf8a;
-  font-size: clamp(1.6rem, 5.2vw, 2.7rem);
-  font-weight: 500;
+.app-shell--home-book .home-recommendation-copy strong {
+  color: #3a1d10;
+  font-size: clamp(1.72rem, 5vw, 2rem);
+  font-weight: 400;
   line-height: 1.05;
+  white-space: nowrap;
+  text-shadow: 0 1px rgba(244, 215, 157, 0.34);
 }
 
-.app-shell--home-book .home-feature-card .cocktail-card-content em {
-  color: #dfb86e;
+.app-shell--home-book .home-recommendation-copy em {
+  color: #5a321d;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(0.92rem, 2.7vw, 1.25rem);
+  font-size: clamp(0.98rem, 2.8vw, 1.12rem);
+  line-height: 1.15;
 }
 
 .home-card-divider {
-  width: min(100%, 190px);
-  height: 1px;
-  background: rgba(201, 161, 90, 0.56);
+  width: 100%;
+  height: 18px;
+  margin-top: 1px;
+  background-image: url("/assets/ink-wash/home-divider-ornament-v1.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
 .home-card-description {
-  color: #e6c47e;
-  font-size: 0.95rem;
-  line-height: 1.65;
+  color: #4b2918;
+  font-size: 0.9rem;
+  line-height: 1.72;
+  text-wrap: balance;
+}
+
+.home-flavor-rule {
+  width: 100%;
+  height: 1px;
+  margin-top: 8px;
+  border-top: 1px dashed rgba(74, 40, 21, 0.48);
 }
 
 .home-flavor-notes {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  width: min(100%, 220px);
-  margin-top: 4px;
-  border-top: 1px solid rgba(201, 161, 90, 0.42);
-  border-bottom: 1px solid rgba(201, 161, 90, 0.32);
+  display: flex;
+  width: 100%;
+  align-items: center;
+  margin-top: 2px;
 }
 
 .home-flavor-notes > span {
+  display: inline-flex;
   min-width: 0;
-  padding: 10px 8px;
-  color: #dfb86e;
-  font-size: 0.85rem;
-  text-align: center;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 10px 4px 2px;
+  color: #52301d;
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
-.home-flavor-notes > span + span {
-  border-left: 1px solid rgba(201, 161, 90, 0.42);
+.home-flavor-separator {
+  display: inline-block;
+  width: 1px;
+  height: 24px;
+  background: rgba(74, 40, 21, 0.45);
 }
 
 .app-shell--home-book .home-pager {
+  position: absolute;
+  bottom: -30px;
+  left: 0;
+  z-index: 3;
+  width: 100%;
   gap: 12px;
   padding-top: 2px;
 }
@@ -2308,18 +2412,9 @@ textarea:focus {
 }
 
 @media (min-width: 621px) and (max-width: 700px) {
-  .app-shell--home-book .home-feature-card img {
-    inset: 0;
-    width: 100%;
-    object-position: center;
-    transform: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
-  .app-shell--home-book .home-feature-card .cocktail-card-content {
-    width: 58%;
-    padding: 26px 18px 24px 28px;
+  .app-shell--home-book .home-recommendation-copy {
+    left: 19%;
+    width: 36%;
   }
 }
 
@@ -2344,10 +2439,16 @@ textarea:focus {
 
   .app-shell--home-book .home-hero-frame {
     width: min(100%, 260px);
-    min-height: 164px;
-    gap: 10px;
+    min-height: 218px;
+    gap: 0;
     margin-bottom: 30px;
-    padding: 22px 18px;
+    padding: 28px 18px;
+  }
+
+  .app-shell--home-book .home-hero-copy {
+    width: 100%;
+    padding-inline-start: 0;
+    gap: 8px;
   }
 
   .home-frame-ornament {
@@ -2360,7 +2461,7 @@ textarea:focus {
   }
 
   .app-shell--home-book .home-hero h1 {
-    font-size: 1.75rem;
+    font-size: 1.46rem;
     line-height: 1.08;
   }
 
@@ -2370,71 +2471,88 @@ textarea:focus {
   }
 
   .app-shell--home-book .recommendation-stage {
-    width: min(100%, 260px);
-    gap: 12px;
+    width: 126.1%;
+    min-height: 664px;
+    margin-left: -16.65%;
   }
 
   .app-shell--home-book .home-section-title-row {
+    top: 139px;
     align-items: center;
-    padding: 0 0 8px 8px;
+    padding: 0 6.2% 0 16%;
   }
 
   .app-shell--home-book .home-section-title-row .eyebrow {
-    font-size: 0.68rem;
+    font-size: 0.88rem;
   }
 
   .app-shell--home-book .home-section-title-row h2 {
-    font-size: 1.45rem;
+    font-size: clamp(1.8rem, 5vw, 2.05rem);
   }
 
   .app-shell--home-book .home-carousel-controls {
-    gap: 8px;
+    gap: 11px;
   }
 
   .app-shell--home-book .home-carousel-controls .icon-button {
-    width: 34px;
-    height: 34px;
+    width: 48px;
+    height: 48px;
   }
 
   .app-shell--home-book .home-feature-card {
-    aspect-ratio: 1.3 / 1;
+    top: 282px;
+    min-height: 430px;
   }
 
-  .app-shell--home-book .home-feature-card img {
-    inset: 0;
-    width: 100%;
-    object-position: center;
-    transform: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
-  .app-shell--home-book .home-feature-card .cocktail-card-content {
-    width: 62%;
+  .app-shell--home-book .home-recommendation-copy {
+    top: 35px;
+    left: 19%;
+    width: 36%;
     gap: 6px;
-    padding: 16px 8px 14px 14px;
+    padding: 0;
   }
 
-  .app-shell--home-book .home-feature-card .cocktail-card-content strong {
-    font-size: 1.45rem;
+  .app-shell--home-book .home-recommendation-image {
+    left: 47%;
+    width: 45%;
   }
 
-  .app-shell--home-book .home-feature-card .cocktail-card-content em {
-    font-size: 0.78rem;
+  .home-recommendation-image .home-feature-photo {
+    top: -20%;
+    left: -112%;
+    width: 255%;
+    height: 102.6%;
+  }
+
+  .app-shell--home-book .home-recommendation-copy strong {
+    font-size: clamp(1.72rem, 5vw, 2rem);
+  }
+
+  .app-shell--home-book .home-recommendation-copy em {
+    font-size: clamp(0.98rem, 2.8vw, 1.12rem);
+  }
+
+  .home-card-divider {
+    height: 18px;
   }
 
   .home-card-description {
-    font-size: 0.7rem;
-    line-height: 1.55;
+    font-size: 0.9rem;
+    line-height: 1.72;
   }
 
   .home-flavor-notes {
-    margin-top: 2px;
+    margin-top: 0;
   }
 
   .home-flavor-notes > span {
-    padding: 6px 3px;
-    font-size: 0.64rem;
+    gap: 14px;
+    padding: 4px 10px 4px 2px;
+    font-size: 0.82rem;
+  }
+
+  .home-flavor-separator {
+    height: 24px;
   }
 
   .app-shell--home-book .home-pager {
@@ -2444,6 +2562,13 @@ textarea:focus {
   .app-shell--home-book .home-pager button {
     width: 8px;
     height: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-shell--home-book .home-recommendation-image {
+    left: 49.5%;
+    width: 43.5%;
   }
 }
 
@@ -2873,7 +2998,338 @@ textarea:focus {
   transform: translateX(-50%);
 }
 
-@media (max-width: 620px) {
+/* Private notebook: the supplied locked-grimoire leaf stays visible beneath a compact archive list. */
+.app-shell--notebook-book {
+  min-height: 100vh;
+  aspect-ratio: 942 / 1675;
+  padding: 70px 14% 238px;
+  color: #4b2a18;
+  background-color: #1b0c06;
+  background-image: url("/assets/page-backgrounds/private-notebook-grimoire-golden-v1.png");
+  background-position: center top;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  font-family: "Songti SC", STSong, Georgia, "Times New Roman", serif;
+}
+
+.app-shell--notebook-book .app-header {
+  gap: 72px;
+  margin-bottom: 32px;
+}
+
+.app-shell--notebook-book .brand-mark {
+  color: #3c2114;
+  font-size: 1.16rem;
+  text-shadow: 0 1px rgba(246, 216, 158, 0.5);
+}
+
+.app-shell--notebook-book .brand-dot {
+  border-color: #6d3d1e;
+  background: #9a6428;
+  box-shadow: 0 0 12px rgba(118, 67, 27, 0.22);
+}
+
+.app-shell--notebook-book .page-heading {
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.app-shell--notebook-book .page-heading .eyebrow {
+  color: #704321;
+  letter-spacing: 0.16em;
+}
+
+.app-shell--notebook-book .page-heading h1 {
+  max-width: 12ch;
+  color: #351b0f;
+  font-size: clamp(2.1rem, 5.4vw, 3.35rem);
+  font-weight: 500;
+  line-height: 1.08;
+  text-wrap: balance;
+  text-shadow: 0 1px rgba(246, 216, 158, 0.48);
+}
+
+.app-shell--notebook-book .notebook-list {
+  gap: 11px;
+}
+
+.app-shell--notebook-book .recipe-card,
+.app-shell--notebook-book .empty-notebook,
+.app-shell--notebook-book .state-panel {
+  color: #482817;
+  border: 1px solid rgba(77, 41, 21, 0.3);
+  background: rgba(240, 205, 142, 0.28);
+  box-shadow:
+    inset 0 1px rgba(255, 235, 192, 0.34),
+    0 9px 24px rgba(70, 36, 17, 0.09);
+  backdrop-filter: blur(0.45px);
+}
+
+.app-shell--notebook-book .recipe-card {
+  gap: 8px;
+  padding: 15px 44px 15px 16px;
+}
+
+.app-shell--notebook-book .recipe-card strong {
+  color: #32180d;
+  font-size: 1.05rem;
+}
+
+.app-shell--notebook-book .recipe-card em,
+.app-shell--notebook-book .recipe-meta,
+.app-shell--notebook-book .recipe-card p,
+.app-shell--notebook-book .empty-notebook p {
+  color: #5c3822;
+}
+
+.app-shell--notebook-book .recipe-card .tag {
+  color: #432516;
+  border-color: rgba(83, 45, 23, 0.34);
+  background: rgba(93, 51, 25, 0.08);
+}
+
+.app-shell--notebook-book .recipe-card-arrow,
+.app-shell--notebook-book .empty-notebook svg {
+  color: #75451f;
+}
+
+.app-shell--notebook-book .book-folio {
+  display: none;
+}
+
+@media screen and (max-width: 620px) {
+  .app-shell--notebook-book {
+    padding: 44px 12.5% 184px 13.5%;
+  }
+
+  .app-shell--notebook-book .app-header {
+    gap: 54px;
+    margin-bottom: 22px;
+  }
+
+  .app-shell--notebook-book .brand-mark {
+    font-size: 0.95rem;
+  }
+
+  .app-shell--notebook-book .brand-dot {
+    width: 9px;
+    height: 9px;
+  }
+
+  .app-shell--notebook-book .page-heading {
+    gap: 5px;
+  }
+
+  .app-shell--notebook-book .page-heading .eyebrow {
+    font-size: 0.68rem;
+  }
+
+  .app-shell--notebook-book .page-heading h1 {
+    font-size: clamp(1.62rem, 8vw, 2.15rem);
+  }
+
+  .app-shell--notebook-book .notebook-list {
+    gap: 8px;
+  }
+
+  .app-shell--notebook-book .recipe-card {
+    gap: 6px;
+    padding: 12px 34px 12px 13px;
+  }
+
+  .app-shell--notebook-book .recipe-card strong {
+    font-size: 0.9rem;
+  }
+
+  .app-shell--notebook-book .recipe-card em,
+  .app-shell--notebook-book .recipe-meta,
+  .app-shell--notebook-book .recipe-card p {
+    font-size: 0.76rem;
+    line-height: 1.45;
+  }
+
+  .app-shell--notebook-book .recipe-card .tag {
+    min-height: 25px;
+    padding-inline: 9px;
+    font-size: 0.72rem;
+  }
+
+  .app-shell--notebook-book .recipe-card-arrow {
+    top: 15px;
+    right: 12px;
+  }
+}
+
+/* Irregular iron-gall ink washes improve legibility without covering the parchment art. */
+.app-shell--cocktail-detail-book .detail-hero-copy,
+.app-shell--cocktail-detail-book .hero-fact,
+.app-shell--cocktail-detail-book .detail-ledger-section {
+  isolation: isolate;
+}
+
+.app-shell--cocktail-detail-book .detail-hero-copy::before {
+  position: absolute;
+  inset: -34px -48px -30px -44px;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-tall.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  filter: none;
+  opacity: 0.86;
+  transform: rotate(-1.4deg);
+  transform-origin: center;
+}
+
+.app-shell--cocktail-detail-book .detail-hero-copy > * {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell--cocktail-detail-book .hero-fact {
+  position: relative;
+  border-color: rgba(222, 174, 91, 0.42);
+  background: transparent;
+}
+
+.app-shell--cocktail-detail-book .hero-fact::before {
+  position: absolute;
+  inset: -26px -20px -22px;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  background-repeat: no-repeat;
+  background-position: center 48%;
+  background-size: cover;
+  filter: none;
+  opacity: 0.84;
+  transform: rotate(0.5deg);
+}
+
+.app-shell--cocktail-detail-book .hero-fact > * {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell--cocktail-detail-book .detail-ledger-section {
+  position: relative;
+}
+
+.app-shell--cocktail-detail-book .detail-ledger-section::before {
+  position: absolute;
+  inset: -28px -24px;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-tall.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  filter: none;
+  opacity: 0.72;
+  transform: rotate(-0.9deg);
+  transform-origin: center;
+}
+
+.app-shell--cocktail-detail-book .detail-ledger-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell--cocktail-detail-book .flavor-chart-column::before {
+  inset: -22px auto auto -20px;
+  width: min(92%, 320px);
+  height: 88px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-heading.png");
+  background-position: left -54px center;
+  background-size: contain;
+  opacity: 0.82;
+  transform: rotate(-1.8deg);
+}
+
+.app-shell--cocktail-detail-book .flavor-story::before {
+  inset: -32px -28px -38px -24px;
+  background-image:
+    url("/assets/ink-wash/cocktail-ink-wash-heading.png"),
+    url("/assets/ink-wash/cocktail-ink-wash-wide.png"),
+    url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  background-position: left -54px top -20px, center 48%, center bottom;
+  background-size: 72% auto, 106% auto, 98% auto;
+  opacity: 0.82;
+  transform: rotate(1.3deg);
+}
+
+.app-shell--cocktail-detail-book .detail-ingredients::before {
+  inset: -30px -24px -32px -30px;
+  background-image:
+    url("/assets/ink-wash/cocktail-ink-wash-heading.png"),
+    url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  background-position: right top, 47% bottom;
+  background-size: 70% auto, 108% auto;
+  opacity: 0.8;
+  transform: rotate(1.2deg) scaleX(-1);
+}
+
+.app-shell--cocktail-detail-book .steps-panel::before {
+  inset: -34px -28px -36px -26px;
+  background-image:
+    url("/assets/ink-wash/cocktail-ink-wash-heading.png"),
+    url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  background-position: left -52px top -18px, 56% bottom;
+  background-size: 70% auto, 108% auto;
+  opacity: 0.82;
+  transform: rotate(-1.4deg);
+}
+
+.app-shell--cocktail-detail-book .detail-notes::before {
+  inset: -30px -30px -36px -22px;
+  background-image:
+    url("/assets/ink-wash/cocktail-ink-wash-heading.png"),
+    url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  background-position: right top, 43% bottom;
+  background-size: 68% auto, 104% auto;
+  opacity: 0.84;
+  transform: rotate(1.8deg) scaleX(-1);
+}
+
+.app-shell--cocktail-detail-book .detail-hero-title,
+.app-shell--cocktail-detail-book .detail-hero-copy .eyebrow,
+.app-shell--cocktail-detail-book .detail-ledger-section h2 {
+  color: #f1c979;
+  text-shadow: 0 1px 8px rgba(12, 5, 2, 0.9);
+}
+
+.app-shell--cocktail-detail-book .detail-hero-description,
+.app-shell--cocktail-detail-book .detail-flavor-notes > span,
+.app-shell--cocktail-detail-book .flavor-story p,
+.app-shell--cocktail-detail-book .line-item span:not(.detail-list-index),
+.app-shell--cocktail-detail-book .line-item strong,
+.app-shell--cocktail-detail-book .step-list,
+.app-shell--cocktail-detail-book .note-list {
+  color: #f2cf8c;
+  font-weight: 500;
+  text-shadow: 0 1px 5px rgba(10, 4, 2, 0.78);
+}
+
+.app-shell--cocktail-detail-book .hero-fact small {
+  color: #d9a85e;
+}
+
+.app-shell--cocktail-detail-book .hero-fact strong {
+  color: #f0cf8a;
+  text-shadow: 0 1px 5px rgba(10, 4, 2, 0.86);
+}
+
+.app-shell--cocktail-detail-book .flavor-radar .recharts-polar-angle-axis-tick-value {
+  fill: #4a2c1b;
+  text-shadow: none;
+}
+
+@media screen and (max-width: 620px) {
   .app-shell--cocktail-detail-book {
     min-height: max(100vh, 236.8vw);
     padding: 26px 7.8% 96px 13.2%;
@@ -2918,6 +3374,11 @@ textarea:focus {
     gap: 0;
   }
 
+  .app-shell--cocktail-detail-book .detail-hero-copy::before {
+    inset: -18px -24px -16px -22px;
+    opacity: 0.88;
+  }
+
   .app-shell--cocktail-detail-book .detail-hero-title {
     font-size: 1.72rem;
   }
@@ -2957,6 +3418,11 @@ textarea:focus {
 
   .app-shell--cocktail-detail-book .hero-fact {
     padding: 6px 0;
+  }
+
+  .app-shell--cocktail-detail-book .hero-fact::before {
+    inset: -14px -11px -12px;
+    opacity: 0.86;
   }
 
   .app-shell--cocktail-detail-book .hero-fact > span {
@@ -3005,6 +3471,25 @@ textarea:focus {
 
   .app-shell--cocktail-detail-book .detail-ledger-section {
     gap: 8px;
+  }
+
+  .app-shell--cocktail-detail-book .detail-ledger-section::before {
+    inset: -17px -13px;
+    opacity: 0.76;
+  }
+
+  .app-shell--cocktail-detail-book .flavor-chart-column::before {
+    inset: -12px auto auto -10px;
+    width: 104%;
+    height: 48px;
+    opacity: 0.84;
+  }
+
+  .app-shell--cocktail-detail-book .flavor-story::before,
+  .app-shell--cocktail-detail-book .detail-ingredients::before,
+  .app-shell--cocktail-detail-book .steps-panel::before,
+  .app-shell--cocktail-detail-book .detail-notes::before {
+    inset: -17px -13px;
   }
 
   .app-shell--cocktail-detail-book .detail-ledger-section h2 {
@@ -3806,4 +4291,527 @@ textarea:focus {
   .ingredient-index-sheet {
     animation: none;
   }
+}
+
+/* Shared ink-wash language: irregular raster stains unify the remaining book leaves. */
+:is(
+    .app-shell--home-book .home-hero-frame,
+    .app-shell--leather-book .workbench-intro-panel,
+    .app-shell--leather-book .workbench-ingredients-panel,
+    .app-shell--leather-book .workbench-tags-panel,
+    .app-shell--leather-book .workbench-notes-panel,
+    .ingredient-sheet-header,
+    .ingredient-index-copy,
+    .app-shell--preview-book .preview-final-chapter,
+    .app-shell--preview-book .preview-meta-ledger,
+    .app-shell--preview-book .preview-ledger-section,
+    .app-shell--preview-book .preview-flavor-note > div,
+    .recipe-manuscript-hero,
+    .recipe-manuscript-summary,
+    .recipe-ledger-section,
+    .recipe-notes
+  ) {
+  position: relative;
+  isolation: isolate;
+}
+
+:is(
+    .app-shell--home-book .home-hero-frame,
+    .app-shell--leather-book .workbench-intro-panel,
+    .app-shell--leather-book .workbench-ingredients-panel,
+    .app-shell--leather-book .workbench-tags-panel,
+    .app-shell--leather-book .workbench-notes-panel,
+    .ingredient-sheet-header,
+    .ingredient-index-copy,
+    .app-shell--preview-book .preview-final-chapter,
+    .app-shell--preview-book .preview-meta-ledger,
+    .app-shell--preview-book .preview-ledger-section,
+    .app-shell--preview-book .preview-flavor-note > div,
+    .recipe-manuscript-hero,
+    .recipe-manuscript-summary,
+    .recipe-ledger-section,
+    .recipe-notes
+  )::before {
+  position: absolute;
+  z-index: 0;
+  content: "";
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  pointer-events: none;
+}
+
+:is(
+    .app-shell--home-book .home-hero-frame,
+    .app-shell--leather-book .workbench-intro-panel,
+    .app-shell--leather-book .workbench-ingredients-panel,
+    .app-shell--leather-book .workbench-tags-panel,
+    .app-shell--leather-book .workbench-notes-panel,
+    .ingredient-sheet-header,
+    .ingredient-index-copy,
+    .app-shell--preview-book .preview-final-chapter,
+    .app-shell--preview-book .preview-meta-ledger,
+    .app-shell--preview-book .preview-ledger-section,
+    .app-shell--preview-book .preview-flavor-note > div,
+    .recipe-manuscript-hero,
+    .recipe-manuscript-summary,
+    .recipe-ledger-section,
+    .recipe-notes
+  ) > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Home: the title keeps its ink spill; the recommendation copy sits directly on parchment. */
+.app-shell--home-book .home-hero-frame::before {
+  inset: -15% -10% -22%;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  opacity: 0.88;
+  transform: rotate(-0.8deg) scale(1.05, 1.12);
+}
+
+/* DIY workbench: alternating compact, tall, and soft horizontal spills. */
+.app-shell--leather-book .workbench-intro-panel::before {
+  inset: -13px -18px -11px -20px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-heading.png");
+  opacity: 0.54;
+  transform: rotate(-1.2deg);
+}
+
+.app-shell--leather-book .workbench-ingredients-panel::before {
+  inset: -12px -22px -17px -18px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-tall.png");
+  opacity: 0.5;
+  transform: rotate(0.9deg) scaleX(-1);
+}
+
+.app-shell--leather-book .workbench-tags-panel::before {
+  inset: -15px -25px -13px -21px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  opacity: 0.46;
+  transform: rotate(-1.6deg) scaleX(1.04);
+}
+
+.app-shell--leather-book .workbench-notes-panel::before {
+  inset: -11px -18px -14px -24px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-heading.png");
+  opacity: 0.46;
+  transform: rotate(1.1deg) scaleX(-1);
+}
+
+.app-shell--leather-book :is(.workbench-intro-panel, .workbench-ingredients-panel, .workbench-tags-panel, .workbench-notes-panel) {
+  color: #efd08a;
+}
+
+/* Home and DIY parchment contrast: static labels use dark handwritten ink. */
+.app-shell--home-book .brand-mark,
+.app-shell--home-book .home-section-title-row .eyebrow,
+.app-shell--home-book .home-section-title-row h2,
+.app-shell--leather-book .brand-mark,
+.app-shell--leather-book .workbench-heading-label {
+  color: #3a1d10;
+  text-shadow: 0 1px rgba(242, 211, 155, 0.3);
+}
+
+.app-shell--leather-book :is(
+    .workbench-intro-panel p,
+    .workbench-fields-panel label > span,
+    .section-title-row .eyebrow,
+    .section-title-row h2,
+    .ingredient-row-head strong,
+    .ingredient-row-head small,
+    .amount-grid label > span,
+    .workbench-tags-panel h2,
+    .workbench-notes-panel label > span
+  ) {
+  color: #482616;
+}
+
+.app-shell--leather-book .workbench-fields-panel input {
+  color: #32170d;
+}
+
+.app-shell--leather-book .sticky-action .primary-button {
+  color: #482616;
+  text-shadow: 0 1px rgba(242, 211, 155, 0.28);
+}
+
+/* Ingredient archive: a pooled header stain with lighter row-level traces. */
+.ingredient-sheet-header::before {
+  inset: -17px -15px -12px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  opacity: 0.68;
+  transform: rotate(0.7deg) scaleX(1.03);
+}
+
+.ingredient-index-copy::before {
+  inset: -9px -17px -8px -13px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-heading.png");
+  opacity: 0.38;
+  transform: rotate(-0.9deg);
+}
+
+.ingredient-index-row:nth-child(even) .ingredient-index-copy::before {
+  transform: rotate(1.2deg) scaleX(-1);
+}
+
+/* Ingredient archive contrast: dark manuscript ink remains legible on parchment. */
+.ingredient-index-row.is-added {
+  opacity: 1;
+}
+
+.ingredient-index-number {
+  color: #69442a;
+}
+
+.ingredient-index-name-row strong {
+  color: #3a1d10;
+  font-weight: 650;
+}
+
+.ingredient-index-name-row small {
+  color: #684329;
+}
+
+.sheet-row.ingredient-index-row p {
+  color: #52301d;
+}
+
+.ingredient-index-row.is-added .ingredient-add-button {
+  opacity: 0.52;
+}
+
+/* Preview: ceremonial title, ledger band, and mirrored manuscript columns. */
+.app-shell--preview-book .preview-final-chapter::before {
+  inset: -18px 7% -13px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-heading.png");
+  opacity: 0.78;
+  transform: rotate(-0.7deg);
+}
+
+.app-shell--preview-book .preview-meta-ledger::before {
+  inset: -13px -18px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  opacity: 0.63;
+  transform: rotate(0.8deg) scaleX(-1);
+}
+
+.app-shell--preview-book .preview-ledger-section::before {
+  inset: -16px -18px -20px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-tall.png");
+  opacity: 0.61;
+  transform: rotate(-1deg);
+}
+
+.app-shell--preview-book .preview-ledger-section:nth-child(2)::before {
+  transform: rotate(1.35deg) scaleX(-1);
+}
+
+.app-shell--preview-book .preview-flavor-note > div::before {
+  inset: -12px -18px -15px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  opacity: 0.5;
+  transform: rotate(0.9deg);
+}
+
+.app-shell--preview-book .preview-flavor-note > div:nth-child(2)::before {
+  transform: rotate(-1.4deg) scaleX(-1);
+}
+
+/* Preview parchment contrast: readable sepia ink over the pale manuscript leaf. */
+.app-shell--preview-book .brand-mark,
+.app-shell--preview-book .workbench-heading-label,
+.app-shell--preview-book .preview-heading-title,
+.app-shell--preview-book .preview-chapter-name {
+  color: #3a1d10;
+  text-shadow: 0 1px rgba(242, 211, 155, 0.32);
+}
+
+.app-shell--preview-book .preview-source,
+.app-shell--preview-book .preview-source strong,
+.app-shell--preview-book .preview-meta-ledger dt,
+.app-shell--preview-book .preview-meta-ledger dd {
+  color: #482616;
+}
+
+.app-shell--preview-book .preview-ledger-section {
+  color: #4b2918;
+}
+
+.app-shell--preview-book .preview-ledger-section h2,
+.app-shell--preview-book .preview-flavor-note h2,
+.app-shell--preview-book .preview-line-item strong,
+.app-shell--preview-book .preview-line-index {
+  color: #3a1d10;
+}
+
+.app-shell--preview-book .preview-flavor-note p {
+  color: #52301d;
+}
+
+.app-shell--preview-book :is(.preview-meta-ledger, .preview-ledger-grid) {
+  border-color: rgba(74, 40, 21, 0.46);
+}
+
+.app-shell--preview-book :is(.preview-line-item, .preview-method li) {
+  border-bottom-color: rgba(74, 40, 21, 0.34);
+}
+
+/* Private recipe: a vertical title pool and quieter ledger washes. */
+.recipe-manuscript-hero::before {
+  inset: -24px -8% -31px -6%;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-tall.png");
+  opacity: 0.54;
+  transform: rotate(-1.1deg) scaleX(1.04);
+}
+
+.recipe-manuscript-summary::before {
+  inset: -18px -5% -15px -4%;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-wide.png");
+  opacity: 0.48;
+  transform: rotate(0.8deg) scaleX(-1);
+}
+
+.recipe-ledger-section::before {
+  inset: -18px -22px -24px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-tall.png");
+  opacity: 0.45;
+  transform: rotate(-1.2deg);
+}
+
+.recipe-ledger-section:nth-child(2)::before {
+  transform: rotate(1.45deg) scaleX(-1);
+}
+
+.recipe-notes::before {
+  inset: -16px -5% -20px;
+  background-image: url("/assets/ink-wash/cocktail-ink-wash-heading.png");
+  opacity: 0.4;
+  transform: rotate(-0.85deg) scaleX(1.04);
+}
+
+/* Private recipe contrast: deep archival ink preserves hierarchy on parchment. */
+.app-shell--recipe-detail-book .brand-mark,
+.recipe-manuscript-eyebrow,
+.recipe-manuscript-title,
+.recipe-manuscript-title-en,
+.recipe-saved-status {
+  color: #32170d;
+  text-shadow: 0 1px rgba(242, 211, 155, 0.3);
+}
+
+.recipe-manuscript {
+  color: #4b2918;
+}
+
+.recipe-origin-line,
+.recipe-origin-line strong,
+.recipe-origin-line time,
+.recipe-facts dt,
+.recipe-facts dd {
+  color: #482616;
+}
+
+.recipe-flavor-tags span {
+  color: #4b2918;
+  border-color: rgba(74, 40, 21, 0.58);
+}
+
+.recipe-ledger-section {
+  color: #4b2918;
+}
+
+.recipe-ledger-section h2,
+.recipe-notes h2,
+.recipe-ledger-index,
+.recipe-ingredient-list strong {
+  color: #35190f;
+}
+
+.recipe-ingredient-list li,
+.recipe-step-list li {
+  color: #4b2918;
+  border-bottom-color: rgba(74, 40, 21, 0.34);
+}
+
+.recipe-notes p {
+  color: #52301d;
+}
+
+.recipe-manuscript-navigation a {
+  color: #482616;
+  border-bottom-color: rgba(74, 40, 21, 0.62);
+}
+
+@media screen and (max-width: 620px) {
+  .app-shell--home-book .home-hero-frame::before {
+    inset: -12% -13% -20%;
+    opacity: 0.88;
+  }
+
+  .app-shell--leather-book .workbench-ingredients-panel::before {
+    inset: -9px -14px -12px;
+    opacity: 0.52;
+  }
+
+  .app-shell--leather-book :is(.workbench-tags-panel, .workbench-notes-panel)::before {
+    inset-inline: -14px;
+  }
+
+  .ingredient-sheet-header::before {
+    inset-inline: -10px;
+  }
+
+  .ingredient-index-copy::before {
+    inset-inline: -10px;
+    opacity: 0.34;
+  }
+
+  .app-shell--preview-book .preview-final-chapter::before {
+    inset-inline: -4%;
+  }
+
+  .app-shell--preview-book .preview-meta-ledger::before {
+    inset-inline: -10px;
+  }
+
+  .app-shell--preview-book .preview-ledger-section::before {
+    inset: -12px -9px -16px;
+    opacity: 0.63;
+  }
+
+  .recipe-ledger-section::before {
+    inset: -12px -9px -16px;
+    opacity: 0.46;
+  }
+
+  .app-shell--preview-book .preview-flavor-note > div::before {
+    inset-inline: -10px;
+  }
+
+  .recipe-manuscript-hero::before {
+    inset: -15px -7% -20px;
+    opacity: 0.58;
+  }
+
+  .recipe-manuscript-summary::before,
+  .recipe-notes::before {
+    inset-inline: -4%;
+  }
+}
+
+/* Manuscript typography hierarchy: stronger reading weight without changing the book composition. */
+:is(
+    .app-shell--home-book,
+    .app-shell--cocktail-detail-book,
+    .app-shell--leather-book,
+    .app-shell--preview-book,
+    .app-shell--recipe-detail-book,
+    .app-shell--notebook-book,
+    .ingredient-index-sheet
+  ) {
+  font-weight: var(--wt-font-weight-body);
+}
+
+:is(
+    .app-shell--home-book,
+    .app-shell--cocktail-detail-book,
+    .app-shell--leather-book,
+    .app-shell--preview-book,
+    .app-shell--recipe-detail-book,
+    .app-shell--notebook-book,
+    .ingredient-index-sheet
+  )
+  :is(
+    p,
+    li,
+    label,
+    input,
+    textarea,
+    dt,
+    small,
+    em,
+    .home-card-description,
+    .home-flavor-notes,
+    .recipe-meta
+  ) {
+  font-weight: var(--wt-font-weight-body);
+}
+
+:is(
+    .app-shell--home-book,
+    .app-shell--cocktail-detail-book,
+    .app-shell--leather-book,
+    .app-shell--preview-book,
+    .app-shell--recipe-detail-book,
+    .app-shell--notebook-book,
+    .ingredient-index-sheet
+  )
+  :is(
+    h1,
+    h2,
+    .workbench-heading-label,
+    .preview-heading-title,
+    .preview-chapter-name,
+    .home-recommendation-copy strong,
+    .recipe-card strong,
+    .ingredient-index-name-row strong
+  ) {
+  font-weight: var(--wt-font-weight-heading);
+}
+
+:is(
+    .app-shell--home-book,
+    .app-shell--cocktail-detail-book,
+    .app-shell--leather-book,
+    .app-shell--preview-book,
+    .app-shell--recipe-detail-book,
+    .app-shell--notebook-book,
+    .ingredient-index-sheet
+  )
+  :is(
+    .detail-list-index,
+    .line-item strong,
+    .hero-fact strong,
+    .step-badge,
+    .preview-line-index,
+    .preview-line-item strong,
+    .recipe-facts dd,
+    .recipe-ledger-index,
+    .recipe-ingredient-list strong,
+    .ingredient-index-number
+  ) {
+  font-weight: var(--wt-font-weight-numeric);
+}
+
+:is(
+    .app-shell--home-book,
+    .app-shell--cocktail-detail-book,
+    .app-shell--leather-book,
+    .app-shell--preview-book,
+    .app-shell--recipe-detail-book,
+    .app-shell--notebook-book,
+    .ingredient-index-sheet
+  )
+  :is(
+    button,
+    .primary-button,
+    .secondary-button,
+    .chip.active,
+    .pager button.is-active,
+    .ingredient-index-tab.active
+  ) {
+  font-weight: var(--wt-font-weight-action);
+}
+
+:is(
+    .app-shell--home-book,
+    .app-shell--cocktail-detail-book,
+    .app-shell--leather-book,
+    .app-shell--preview-book,
+    .app-shell--recipe-detail-book,
+    .app-shell--notebook-book
+  )
+  .brand-mark {
+  font-weight: var(--wt-font-weight-brand);
 }
