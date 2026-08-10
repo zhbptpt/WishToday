@@ -3,7 +3,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { BookPageAction } from "../components/BookPageAction";
+import { mockCocktails } from "../mocks/cocktails";
 import { useWishTodayStore } from "../store/useWishTodayStore";
+import { resolvePreviewSteps } from "./previewRecipeSteps";
 
 export function PreviewRecipePage() {
   const navigate = useNavigate();
@@ -48,6 +50,12 @@ export function PreviewRecipePage() {
     );
   }
 
+  const previewSteps = resolvePreviewSteps(
+    currentDraft.sourceCocktailId,
+    currentDraft.ingredients,
+    mockCocktails,
+  );
+
   return (
     <AppShell
       eyebrow="预览成品"
@@ -85,9 +93,8 @@ export function PreviewRecipePage() {
         <section className="preview-ledger-section preview-ingredients">
           <h2>配料总览</h2>
           <div className="preview-line-list">
-            {currentDraft.ingredients.map((ingredient, index) => (
+            {currentDraft.ingredients.map((ingredient) => (
               <div className="preview-line-item" key={ingredient.ingredientId}>
-                <span className="preview-line-index">{index + 1}</span>
                 <span>{ingredient.name}</span>
                 <strong>
                   {ingredient.amount} {ingredient.unit}
@@ -100,10 +107,8 @@ export function PreviewRecipePage() {
         <section className="preview-ledger-section preview-method">
           <h2>调制顺序</h2>
           <ol>
-            {currentDraft.ingredients.map((ingredient) => (
-              <li key={ingredient.ingredientId}>
-                {ingredient.name} · {ingredient.amount} {ingredient.unit}
-              </li>
+            {previewSteps.map((step, index) => (
+              <li key={`${currentDraft.sourceCocktailId}-${index}`}>{step}</li>
             ))}
           </ol>
         </section>

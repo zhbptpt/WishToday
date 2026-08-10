@@ -97,9 +97,12 @@ describe("shared ink-wash visual language", () => {
     );
   });
 
-  it("varies the ink composition instead of applying one repeated page overlay", () => {
+  it("varies the ink composition while keeping the recommendation card free of a dark stain", () => {
+    expect(stylesheet).not.toContain(
+      ".app-shell--home-book .home-feature-card .cocktail-card-content::before",
+    );
     expect(stylesheet).toMatch(
-      /\.app-shell--home-book \.home-feature-card \.cocktail-card-content::before[\s\S]*?transform:/,
+      /\.app-shell--home-book \.home-feature-card \.card-sheen\s*\{[^}]*?background:\s*none;[^}]*?opacity:\s*0;/,
     );
     expect(stylesheet).toMatch(
       /\.app-shell--leather-book \.workbench-ingredients-panel::before[\s\S]*?background-image:[\s\S]*?tall\.png/,

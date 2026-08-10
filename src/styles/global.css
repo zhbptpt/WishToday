@@ -1701,24 +1701,11 @@ textarea:focus {
 
 .app-shell--preview-book .preview-line-item {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 10px 0;
   border-bottom: 1px dashed rgba(201, 161, 90, 0.32);
-}
-
-.app-shell--preview-book .preview-line-index {
-  display: inline-flex;
-  width: 24px;
-  height: 24px;
-  align-items: center;
-  justify-content: center;
-  color: #d6a554;
-  border: 1px solid rgba(201, 161, 90, 0.68);
-  border-radius: 50%;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 0.72rem;
 }
 
 .app-shell--preview-book .preview-line-item strong {
@@ -1890,19 +1877,12 @@ textarea:focus {
   }
 
   .app-shell--preview-book .preview-line-item {
-    grid-template-columns: 19px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 5px;
     padding: 6px 0;
   }
 
-  .app-shell--preview-book .preview-line-index {
-    width: 18px;
-    height: 18px;
-    font-size: 0.58rem;
-  }
-
   .app-shell--preview-book .preview-line-item strong {
-    grid-column: 2;
     font-size: 0.78rem;
   }
 
@@ -1937,6 +1917,12 @@ textarea:focus {
     bottom: 37px;
     width: 92px;
     font-size: 0.86rem;
+  }
+}
+
+@media (min-width: 621px) and (max-width: 700px) {
+  .app-shell--preview-book .preview-ledger-grid {
+    gap: 28px;
   }
 }
 
@@ -4540,8 +4526,7 @@ textarea:focus {
 
 .app-shell--preview-book .preview-ledger-section h2,
 .app-shell--preview-book .preview-flavor-note h2,
-.app-shell--preview-book .preview-line-item strong,
-.app-shell--preview-book .preview-line-index {
+.app-shell--preview-book .preview-line-item strong {
   color: #3a1d10;
 }
 
@@ -4774,7 +4759,6 @@ textarea:focus {
     .line-item strong,
     .hero-fact strong,
     .step-badge,
-    .preview-line-index,
     .preview-line-item strong,
     .recipe-facts dd,
     .recipe-ledger-index,
