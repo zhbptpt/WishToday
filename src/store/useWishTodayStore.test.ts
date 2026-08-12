@@ -16,12 +16,66 @@ const extraIngredient: Ingredient = {
   description: "增加清凉草本气息。",
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   resetMockFailures();
+  await useWishTodayStore.persist.clearStorage();
   useWishTodayStore.getState().resetFlow();
 });
 
 describe("useWishTodayStore flow state", () => {
+  it("restores the core flow state from localStorage after a reload", async () => {
+    const savedRecipe: SavedRecipe = {
+      id: "saved-persisted",
+      sourceCocktailId: sourceCocktail.id,
+      sourceCocktailName: sourceCocktail.nameZh,
+      name: "持久化配方",
+      nameEn: "Persisted Recipe",
+      baseSpirit: sourceCocktail.baseSpirit,
+      ingredients: sourceCocktail.ingredients,
+      flavorTags: sourceCocktail.flavorTags,
+      notes: "刷新后仍应存在",
+      createdAt: "2026-08-12T10:00:00.000Z",
+    };
+
+    const store = useWishTodayStore.getState();
+    store.createDraftFromCocktail(sourceCocktail);
+    store.setSession({
+      isAuthenticated: true,
+      userId: "user-persisted",
+      nickname: "今日调酒师",
+    });
+    store.addSavedRecipe(savedRecipe);
+
+    const { name, storage } = useWishTodayStore.persist.getOptions();
+    if (!name || !storage) {
+      throw new Error("Store persistence is not configured");
+    }
+
+    const persistedValue = await storage?.getItem(name);
+    if (!persistedValue) {
+      throw new Error("Core flow state was not persisted");
+    }
+
+    useWishTodayStore.setState({
+      currentDraft: undefined,
+      lastSavedRecipeId: undefined,
+      savedRecipes: [],
+      session: { isAuthenticated: false },
+    });
+    await storage.setItem(name, persistedValue);
+    await useWishTodayStore.persist.rehydrate();
+
+    expect(useWishTodayStore.getState()).toMatchObject({
+      currentDraft: { sourceCocktailId: sourceCocktail.id },
+      lastSavedRecipeId: savedRecipe.id,
+      savedRecipes: [{ id: savedRecipe.id }],
+      session: {
+        isAuthenticated: true,
+        userId: "user-persisted",
+      },
+    });
+  });
+
   it("creates an editable DIY draft from a source cocktail", () => {
     useWishTodayStore.getState().createDraftFromCocktail(sourceCocktail);
 

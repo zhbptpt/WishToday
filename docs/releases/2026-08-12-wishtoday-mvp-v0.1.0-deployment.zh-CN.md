@@ -29,7 +29,7 @@ WishToday MVP 是使用本地 mock 数据和 mock 认证的 Vite 单页应用，
 
 ## 发布门禁
 
-- 全量测试：通过（22 个 Vitest 测试文件、106 项测试；2 项部署配置测试）
+- 全量测试：通过（22 个 Vitest 测试文件、107 项测试；3 项部署配置测试）
 - TypeScript 类型检查：通过
 - GitHub Pages 生产构建：通过
 - 依赖安全审计：通过（`npm audit`，0 项已知漏洞）
@@ -58,5 +58,9 @@ Pages 启用并且工作流成功后，需对生产首页、鸡尾酒详情、�
 
 ## 已知非阻塞问题
 
-- 主 JavaScript 包仍超过 Vite 默认的 500 kB 警告线。
-- 当前部署使用本地 mock 数据和 mock 认证，刷新页面会重置运行期保存数据。
+- 当前部署仍使用本地 mock 数据和 mock 认证，尚未接入真实后端与 API。这是 v0.1.0 已确认的 MVP 边界。
+
+## 已解决遗留问题
+
+- 已通过路由级懒加载拆分页面代码。Pages 生产构建中最大的 JavaScript chunk 为鸡尾酒详情页约 294.96 kB（gzip 89.86 kB），所有 chunk 均低于 Vite 默认的 500 kB 警告线。
+- 已增加 Store 持久化回归测试，确认草稿、登录态和已保存配方可由 Zustand `persist` 恢复。浏览器环境使用 `localStorage`，正常刷新不会重置这些核心流程数据。

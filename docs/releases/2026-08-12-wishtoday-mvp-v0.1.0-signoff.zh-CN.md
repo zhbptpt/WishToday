@@ -41,8 +41,9 @@
 
 ## 已知非阻塞问题
 
-- 生产构建的主 JavaScript 包超过 Vite 默认的 500 kB 警告线，后续可通过路由级拆包和依赖按需加载优化。
 - 当前使用本地 mock 数据和 mock 认证，真实后端与 API 尚未接入。
+
+签收时记录的主 JavaScript 包体积问题已在后续部署准备中通过路由级拆包解决，详见 `docs/releases/2026-08-12-wishtoday-mvp-v0.1.0-deployment.zh-CN.md`。
 
 ## 签收结论
 
