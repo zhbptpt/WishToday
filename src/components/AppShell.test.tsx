@@ -119,6 +119,26 @@ describe("AppShell", () => {
     expect(notebookMarkup).not.toContain("app-shell--recipe-detail-book");
   });
 
+  it("adds the dedicated private notebook layout only on the notebook page", () => {
+    const notebookMarkup = renderToStaticMarkup(
+      <MemoryRouter initialEntries={["/notebook"]}>
+        <AppShell>
+          <section>content</section>
+        </AppShell>
+      </MemoryRouter>,
+    );
+    const recipeMarkup = renderToStaticMarkup(
+      <MemoryRouter initialEntries={["/recipes/private-recipe"]}>
+        <AppShell>
+          <section>content</section>
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    expect(notebookMarkup).toContain("app-shell--notebook-book");
+    expect(recipeMarkup).not.toContain("app-shell--notebook-book");
+  });
+
   it("adds the dedicated final-chapter layout only on the preview page", () => {
     const previewMarkup = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/diy/preview"]}>

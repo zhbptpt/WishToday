@@ -1089,6 +1089,12 @@ textarea:focus {
   display: none;
 }
 
+/* Private notebook index: a locked personal journal leaf. */
+.app-shell--notebook-book {
+  background-image: url("/assets/page-backgrounds/private-notebook-grimoire-golden-v4.png");
+  font-family: "Songti SC", STSong, Georgia, "Times New Roman", serif;
+}
+
 /* DIY-only content treatment layered over the shared book surface. */
 .app-shell--leather-book {
   width: min(100%, 815px);

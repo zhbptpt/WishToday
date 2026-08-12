@@ -28,6 +28,10 @@ describe("page background artwork", () => {
       "app-shell--recipe-detail-book",
       "/assets/page-backgrounds/private-recipe-grimoire-golden-v4.png",
     ],
+    [
+      "app-shell--notebook-book",
+      "/assets/page-backgrounds/private-notebook-grimoire-golden-v4.png",
+    ],
   ])("maps .%s to its dedicated manuscript", (className, assetPath) => {
     expect(stylesheet).toMatch(
       new RegExp(
@@ -41,5 +45,14 @@ describe("page background artwork", () => {
     expect(stylesheet).toMatch(
       /\.ingredient-index-sheet\s*\{[^}]*background-image:\s*url\(["']\/assets\/page-backgrounds\/ingredient-herbarium-grimoire-golden-v4\.png["']\)/s,
     );
+  });
+
+  it("lets the private notebook manuscript grow with long recipe lists", () => {
+    const notebookRule = stylesheet.match(
+      /\.app-shell--notebook-book\s*\{([^}]*)\}/s,
+    );
+
+    expect(notebookRule?.[1]).toBeDefined();
+    expect(notebookRule?.[1]).not.toContain("aspect-ratio");
   });
 });
