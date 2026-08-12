@@ -39,17 +39,17 @@ describe("PreviewRecipePage book actions", () => {
     );
   });
 
-  it("balances the metadata ledger and adds a 630px-friendly breakpoint", () => {
+  it("keeps the metadata ledger in three equal columns and adds a 630px-friendly breakpoint", () => {
     const stylesheet = readFileSync(
       new URL("../styles/global.css", import.meta.url),
       "utf8",
     );
 
     expect(stylesheet).toMatch(
-      /\.app-shell--preview-book \.preview-meta-ledger\s*\{[\s\S]*?grid-template-columns: 1\.25fr 1fr 0\.75fr;/,
+      /\.app-shell--preview-book \.preview-meta-ledger\s*\{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/,
     );
     expect(stylesheet).toMatch(
-      /\.app-shell--preview-book \.preview-meta-ledger dt\s*\{[\s\S]*?font-size: 0\.8125rem;/,
+      /\.app-shell--preview-book \.preview-meta-ledger dt\s*\{[\s\S]*?font-size: 0\.78rem;/,
     );
     expect(stylesheet).toMatch(
       /@media \(min-width: 621px\) and \(max-width: 700px\)[\s\S]*?\.app-shell--preview-book \.preview-ledger-grid\s*\{[\s\S]*?gap: 28px;/,

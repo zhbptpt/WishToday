@@ -103,6 +103,49 @@ describe("CocktailDetailPage mobile layout", () => {
     );
   });
 
+  it("uses real irregular ink-wash assets as non-interactive contrast layers", () => {
+    const stylesheet = readFileSync(
+      new URL("../styles/global.css", import.meta.url),
+      "utf8",
+    );
+
+    expect(stylesheet).toContain(
+      'url("/assets/ink-wash/cocktail-ink-wash-wide.png")',
+    );
+    expect(stylesheet).toContain(
+      'url("/assets/ink-wash/cocktail-ink-wash-tall.png")',
+    );
+    expect(stylesheet).toContain(
+      'url("/assets/ink-wash/cocktail-ink-wash-heading.png")',
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--cocktail-detail-book \.detail-hero-copy::before\s*\{[\s\S]*?pointer-events: none;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--cocktail-detail-book \.detail-ledger-section::before\s*\{[\s\S]*?pointer-events: none;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--cocktail-detail-book \.detail-ledger-section > \*\s*\{[\s\S]*?z-index: 1;/,
+    );
+  });
+
+  it("preserves the native brown tonal range of every detail ink wash", () => {
+    const stylesheet = readFileSync(
+      new URL("../styles/global.css", import.meta.url),
+      "utf8",
+    );
+
+    expect(stylesheet).toMatch(
+      /\.app-shell--cocktail-detail-book \.detail-hero-copy::before\s*\{[\s\S]*?filter: none;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--cocktail-detail-book \.hero-fact::before\s*\{[\s\S]*?filter: none;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--cocktail-detail-book \.detail-ledger-section::before\s*\{[\s\S]*?filter: none;/,
+    );
+  });
+
   it("matches the DIY action position to the workbench preview action", () => {
     const stylesheet = readFileSync(
       new URL("../styles/global.css", import.meta.url),

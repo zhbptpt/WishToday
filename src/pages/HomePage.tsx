@@ -49,15 +49,6 @@ export function HomePage() {
   return (
     <AppShell>
       <section className="home-hero home-hero-frame">
-        <span className="home-frame-ornament" aria-hidden="true">
-          <Sparkle size={18} strokeWidth={1.4} />
-        </span>
-        <span
-          className="home-frame-ornament home-frame-ornament--bottom"
-          aria-hidden="true"
-        >
-          <Sparkle size={16} strokeWidth={1.4} />
-        </span>
         {(["tl", "tr", "bl", "br"] as const).map((corner) => (
           <span
             className={`home-frame-corner home-frame-corner--${corner}`}
@@ -67,14 +58,16 @@ export function HomePage() {
             <Sparkle size={9} strokeWidth={1.35} />
           </span>
         ))}
-        <p className="eyebrow home-hero-eyebrow">
-          <Sprout size={15} strokeWidth={1.4} aria-hidden="true" />
-          今日推荐
-        </p>
-        <h1>让今晚有一杯答案！</h1>
-        <p className="lead">
-          从一杯经典鸡尾酒开始，稍微改造，沉淀成你的私人配方。
-        </p>
+        <div className="home-hero-copy">
+          <p className="eyebrow home-hero-eyebrow">
+            <Sprout size={15} strokeWidth={1.4} aria-hidden="true" />
+            今日推荐
+          </p>
+          <h1>让今晚有一杯答案！</h1>
+          <p className="lead">
+            从一杯经典鸡尾酒开始，稍微改造，沉淀成你的私人配方。
+          </p>
+        </div>
       </section>
 
       {status === "loading" ? (
@@ -115,27 +108,37 @@ export function HomePage() {
             className="cocktail-card feature-card home-feature-card"
             onClick={() => navigate(`/cocktails/${activeCocktail.id}`)}
           >
-            <img src={activeCocktail.imageUrl} alt={activeCocktail.nameZh} />
+            <span className="home-recommendation-image" aria-hidden="true">
+              <img
+                className={`home-feature-photo home-feature-photo--wash home-feature-photo--${activeCocktail.id}`}
+                src={
+                  activeCocktail.id === "old-fashioned"
+                    ? "/assets/ink-wash/old-fashioned-background-wash-v1.png"
+                    : activeCocktail.imageUrl
+                }
+                alt=""
+              />
+              <img
+                className={`home-feature-photo home-feature-photo--subject home-feature-photo--${activeCocktail.id}`}
+                src={activeCocktail.imageUrl}
+                alt=""
+              />
+            </span>
             <span className="card-sheen" aria-hidden="true" />
-            <span className="home-card-ornament" aria-hidden="true">
-              <Sparkle size={14} strokeWidth={1.35} />
-            </span>
-            <span
-              className="home-card-ornament home-card-ornament--bottom"
-              aria-hidden="true"
-            >
-              <Sparkle size={12} strokeWidth={1.35} />
-            </span>
-            <span className="cocktail-card-content">
+            <span className="cocktail-card-content home-recommendation-copy">
               <strong>{activeCocktail.nameZh}</strong>
               <em>{activeCocktail.nameEn}</em>
               <span className="home-card-divider" aria-hidden="true" />
               <span className="home-card-description">
                 {activeCocktail.recommendationText}
               </span>
+              <span className="home-flavor-rule" aria-hidden="true" />
               <span className="home-flavor-notes">
-                {activeCocktail.flavorTags.map((tag) => (
+                {activeCocktail.flavorTags.map((tag, index) => (
                   <span key={tag}>
+                    {index > 0 ? (
+                      <i className="home-flavor-separator" aria-hidden="true" />
+                    ) : null}
                     {tag}
                   </span>
                 ))}
