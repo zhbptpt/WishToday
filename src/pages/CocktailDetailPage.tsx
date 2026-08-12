@@ -169,10 +169,10 @@ export function CocktailDetailPage() {
 
       <div className="sticky-action book-page-navigation">
         <button
-          className="primary-button book-page-action book-page-action--forward"
+          className="primary-button book-page-action book-page-action--forward cocktail-detail-diy-action"
           onClick={enterWorkbench}
         >
-          <BookPageAction direction="forward">DIY</BookPageAction>
+          <BookPageAction direction="forward">DIY 调酒</BookPageAction>
         </button>
       </div>
     </AppShell>

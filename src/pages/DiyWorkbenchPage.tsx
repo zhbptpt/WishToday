@@ -264,7 +264,10 @@ export function DiyWorkbenchPage() {
       ) : null}
 
       <div className="sticky-action">
-        <button className="primary-button" onClick={preview}>
+        <button
+          className="primary-button workbench-preview-action"
+          onClick={preview}
+        >
           预览成品
           <ArrowRight size={18} aria-hidden="true" />
         </button>

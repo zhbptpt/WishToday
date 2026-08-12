@@ -133,13 +133,13 @@ export function PreviewRecipePage() {
 
       <div className="dual-action-row">
         <button
-          className="secondary-button book-page-action book-page-action--back"
+          className="secondary-button book-page-action book-page-action--back preview-edit-action"
           onClick={() => navigate("/diy")}
         >
           <BookPageAction direction="back">返回编辑</BookPageAction>
         </button>
         <button
-          className="primary-button book-page-action book-page-action--forward"
+          className="primary-button book-page-action book-page-action--forward preview-save-action"
           disabled={saveStatus === "saving"}
           onClick={saveRecipe}
         >

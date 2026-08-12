@@ -1,4 +1,4 @@
-import { BookOpen, ChevronRight } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
@@ -36,25 +36,32 @@ export function NotebookPage() {
       ) : (
         <section className="notebook-list" aria-label="已保存配方">
           {savedRecipes.map((recipe) => (
-            <Link className="recipe-card" to={`/recipes/${recipe.id}`} key={recipe.id}>
-              <span>
+            <Link
+              className="recipe-card notebook-index-slip"
+              to={`/recipes/${recipe.id}`}
+              key={recipe.id}
+            >
+              <span className="notebook-index-heading">
                 <strong>{recipe.name}</strong>
                 {recipe.nameEn ? <em>{recipe.nameEn}</em> : null}
               </span>
-              <span className="recipe-meta">
+              <span className="recipe-meta notebook-index-meta">
                 改造自 {recipe.sourceCocktailName} ·{" "}
                 {new Date(recipe.createdAt).toLocaleDateString("zh-CN")} ·{" "}
                 {recipe.ingredients.length} 个材料
               </span>
-              <span className="tag-row">
+              <span className="tag-row notebook-index-stamps">
                 {recipe.flavorTags.slice(0, 3).map((tag) => (
-                  <span className="tag" key={tag}>
+                  <span className="tag notebook-index-stamp" key={tag}>
                     {tag}
                   </span>
                 ))}
               </span>
-              {recipe.notes ? <p>{recipe.notes}</p> : null}
-              <ChevronRight className="recipe-card-arrow" size={18} />
+              <ArrowRight
+                aria-hidden="true"
+                className="recipe-card-arrow notebook-index-arrow"
+                size={26}
+              />
             </Link>
           ))}
         </section>

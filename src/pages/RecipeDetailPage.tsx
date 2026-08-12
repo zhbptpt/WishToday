@@ -1,6 +1,7 @@
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
+import { BookPageAction } from "../components/BookPageAction";
 import { paths } from "../routes/paths";
 import { useWishTodayStore } from "../store/useWishTodayStore";
 import type { SavedRecipe } from "../types/domain";
@@ -106,7 +107,12 @@ export function RecipeManuscript({
       ) : null}
 
       <nav className="recipe-manuscript-navigation" aria-label="配方页面导航">
-        <Link to={paths.notebook}>返回笔记本</Link>
+        <Link
+          className="book-page-action recipe-notebook-return-action"
+          to={paths.notebook}
+        >
+          <BookPageAction direction="back">返回笔记本</BookPageAction>
+        </Link>
       </nav>
     </article>
   );

@@ -72,6 +72,11 @@ describe("RecipeDetailPage", () => {
     expect(markup).toContain("调制顺序");
     expect(markup).toContain("摇和前充分冷却杯具。");
     expect(markup.match(/返回笔记本/g)).toHaveLength(1);
+    expect(markup).toContain(
+      'class="book-page-action recipe-notebook-return-action"',
+    );
+    expect(markup).toContain('href="/notebook"');
+    expect(markup).toContain("book-page-action-icon");
     expect(markup).not.toContain("返回私人笔记本");
     expect(markup).not.toContain("再次调制");
     expect(markup).not.toContain("sticky-action");

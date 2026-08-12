@@ -101,4 +101,39 @@ describe("PreviewRecipePage book actions", () => {
       /@media \(max-width: 620px\)[\s\S]*?\.dual-action-row \.book-page-action--back\s*\{[\s\S]*?left: 49px;[\s\S]*?bottom: 30px;/,
     );
   });
+
+  it("gives the preview actions page-scoped ink-wash roles", () => {
+    const page = readFileSync(
+      new URL("./PreviewRecipePage.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(page).toContain("preview-edit-action");
+    expect(page).toContain("preview-save-action");
+    expect(page).toContain("返回编辑");
+    expect(page).toContain("保存笔记");
+  });
+
+  it("renders a lighter secondary wash and a stronger primary wash", () => {
+    const stylesheet = readFileSync(
+      new URL("../styles/global.css", import.meta.url),
+      "utf8",
+    );
+
+    expect(stylesheet).toMatch(
+      /\.app-shell--preview-book \.dual-action-row\s+:is\(\.preview-edit-action, \.preview-save-action\)\s*\{[\s\S]*?min-width: 146px;[\s\S]*?min-height: 50px;[\s\S]*?color: #f2d694;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--preview-book \.preview-edit-action::before\s*\{[\s\S]*?background-image: url\("\/assets\/ink-wash\/cocktail-ink-wash-wide\.png"\);[\s\S]*?filter: none;[\s\S]*?opacity: 0\.72;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--preview-book \.preview-save-action::before\s*\{[\s\S]*?background-image: url\("\/assets\/ink-wash\/cocktail-ink-wash-wide\.png"\);[\s\S]*?filter: none;[\s\S]*?opacity: 0\.94;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--preview-book \.dual-action-row\s+:is\(\.preview-edit-action, \.preview-save-action\):hover/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--preview-book \.dual-action-row\s+:is\(\.preview-edit-action, \.preview-save-action\):focus-visible/,
+    );
+  });
 });
