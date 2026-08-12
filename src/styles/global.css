@@ -2205,6 +2205,7 @@ textarea:focus {
 
 .app-shell--home-book .home-feature-card {
   position: absolute;
+  touch-action: pan-y;
   top: 282px;
   left: 0;
   width: 100%;

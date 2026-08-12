@@ -1,9 +1,13 @@
 import { ChevronLeft, ChevronRight, Sparkle, Sprout } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { listTodayRecommendations } from "../services/cocktailService";
 import type { Cocktail } from "../types/domain";
+import {
+  getRecommendationSwipeDelta,
+  type PointerPosition,
+} from "./homeSwipe";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -12,6 +16,8 @@ export function HomePage() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
+  const swipeStart = useRef<PointerPosition | undefined>(undefined);
+  const suppressNextCardClick = useRef(false);
 
   useEffect(() => {
     let ignore = false;
@@ -44,6 +50,43 @@ export function HomePage() {
       }
       return (current + delta + cocktails.length) % cocktails.length;
     });
+  }
+
+  function handleCardPointerDown(event: PointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    swipeStart.current = { x: event.clientX, y: event.clientY };
+    suppressNextCardClick.current = false;
+  }
+
+  function handleCardPointerUp(event: PointerEvent<HTMLButtonElement>) {
+    const start = swipeStart.current;
+    swipeStart.current = undefined;
+
+    if (!start) {
+      return;
+    }
+
+    const delta = getRecommendationSwipeDelta(start, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    if (delta !== 0) {
+      suppressNextCardClick.current = true;
+      move(delta);
+    }
+  }
+
+  function handleCardClick() {
+    if (suppressNextCardClick.current) {
+      suppressNextCardClick.current = false;
+      return;
+    }
+
+    navigate(`/cocktails/${activeCocktail?.id}`);
   }
 
   return (
@@ -106,7 +149,12 @@ export function HomePage() {
 
           <button
             className="cocktail-card feature-card home-feature-card"
-            onClick={() => navigate(`/cocktails/${activeCocktail.id}`)}
+            onClick={handleCardClick}
+            onPointerCancel={() => {
+              swipeStart.current = undefined;
+            }}
+            onPointerDown={handleCardPointerDown}
+            onPointerUp={handleCardPointerUp}
           >
             <span className="home-recommendation-image" aria-hidden="true">
               <img

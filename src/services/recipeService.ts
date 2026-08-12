@@ -17,9 +17,9 @@ export async function saveDraftAsRecipe(draft: DiyDraft): Promise<SavedRecipe> {
     createdAt: new Date().toISOString(),
   };
 
-  savedRecipeRepository.unshift(recipe);
-
-  return mockDelay(recipe);
+  const savedRecipe = await mockDelay(recipe, 160, "saveDraftAsRecipe");
+  savedRecipeRepository.unshift(savedRecipe);
+  return savedRecipe;
 }
 
 export async function listSavedRecipes(): Promise<SavedRecipe[]> {
@@ -27,11 +27,17 @@ export async function listSavedRecipes(): Promise<SavedRecipe[]> {
     [...savedRecipeRepository].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     ),
+    160,
+    "listSavedRecipes",
   );
 }
 
 export async function getSavedRecipeById(
   id: string,
 ): Promise<SavedRecipe | undefined> {
-  return mockDelay(savedRecipeRepository.find((recipe) => recipe.id === id));
+  return mockDelay(
+    savedRecipeRepository.find((recipe) => recipe.id === id),
+    160,
+    "getSavedRecipeById",
+  );
 }

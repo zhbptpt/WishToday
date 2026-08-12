@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockCocktails } from "../mocks/cocktails";
+import {
+  configureMockFailure,
+  resetMockFailures,
+} from "../services/apiClient";
 import type { Ingredient, SavedRecipe } from "../types/domain";
 import { useWishTodayStore } from "./useWishTodayStore";
 
@@ -13,6 +17,7 @@ const extraIngredient: Ingredient = {
 };
 
 beforeEach(() => {
+  resetMockFailures();
   useWishTodayStore.getState().resetFlow();
 });
 
@@ -194,5 +199,33 @@ describe("useWishTodayStore flow state", () => {
       id: "saved-1",
       sourceCocktailId: sourceCocktail.id,
     });
+  });
+
+  it("keeps the draft and exposes the service error when saving fails", async () => {
+    const store = useWishTodayStore.getState();
+    store.createDraftFromCocktail(sourceCocktail);
+    store.setSession({
+      isAuthenticated: true,
+      userId: "user-1",
+      nickname: "调酒新手",
+    });
+    configureMockFailure("saveDraftAsRecipe", {
+      message: "保存服务暂时不可用",
+      times: 1,
+    });
+
+    const result = await store.saveCurrentDraft();
+
+    expect(result).toEqual({
+      status: "error",
+      error: "保存服务暂时不可用",
+    });
+    expect(useWishTodayStore.getState()).toMatchObject({
+      saveStatus: "error",
+      saveError: "保存服务暂时不可用",
+    });
+    expect(useWishTodayStore.getState().currentDraft?.sourceCocktailId).toBe(
+      sourceCocktail.id,
+    );
   });
 });

@@ -3,7 +3,7 @@ import type { Ingredient, IngredientCategory } from "../types/domain";
 import { mockDelay } from "./apiClient";
 
 export async function listIngredients(): Promise<Ingredient[]> {
-  return mockDelay(mockIngredients);
+  return mockDelay(mockIngredients, 160, "listIngredients");
 }
 
 export async function listIngredientsByCategory(
@@ -11,6 +11,8 @@ export async function listIngredientsByCategory(
 ): Promise<Ingredient[]> {
   return mockDelay(
     mockIngredients.filter((ingredient) => ingredient.category === category),
+    160,
+    "listIngredientsByCategory",
   );
 }
 
@@ -35,5 +37,7 @@ export async function searchIngredients(query: string): Promise<Ingredient[]> {
 
       return searchableText.includes(normalizedQuery);
     }),
+    160,
+    "searchIngredients",
   );
 }
