@@ -4,8 +4,8 @@
 - 部署版本：v0.1.0
 - 部署平台：GitHub Pages
 - 生产地址：`https://zhbptpt.github.io/WishToday/`
-- 发布状态：部署准备完成，生产发布被仓库 Pages 设置阻塞
-- GitHub Actions：`https://github.com/zhbptpt/WishToday/actions/runs/31611992395`
+- 发布状态：已发布
+- GitHub Actions：`https://github.com/zhbptpt/WishToday/actions/runs/31614452254`（Attempt 3）
 
 ## 平台决策
 
@@ -27,6 +27,8 @@ WishToday MVP 是使用本地 mock 数据和 mock 认证的 Vite 单页应用，
 3. 使用 `/WishToday/` 基路径构建生产产物。
 4. 上传 `dist` 目录并部署到 GitHub Pages。
 
+仓库 Pages 的发布源已设置为 `GitHub Actions`。`github-pages` Environment 的部署分支策略已新增 `main`，同时保留原有 `codex/archival-manuscript-visuals` 规则。最终工作流 Attempt 3 的 `build` 与 `deploy` job 均成功，部署提交为 `aff32527276e70d3475ac2973d97168a99c0cfc6`。
+
 ## 发布门禁
 
 - 全量测试：通过（22 个 Vitest 测试文件、107 项测试；3 项部署配置测试）
@@ -34,20 +36,20 @@ WishToday MVP 是使用本地 mock 数据和 mock 认证的 Vite 单页应用，
 - GitHub Pages 生产构建：通过
 - 依赖安全审计：通过（`npm audit`，0 项已知漏洞）
 - 本地生产路由冒烟测试：通过（首页、详情、登录与未知路由回退）
-- GitHub Actions 发布工作流：失败。依赖安装与全部自动化测试通过，`Configure GitHub Pages` 因仓库尚未启用 Pages 而失败，后续构建与部署步骤被跳过。
-- 生产 URL 冒烟测试：未通过。`https://zhbptpt.github.io/WishToday/` 当前返回 HTTP 404，与 Pages 尚未启用的状态一致。
+- GitHub Actions 发布工作流：通过。最终运行 `31614452254` 的 Attempt 3 中，`build` 与 `deploy` 均成功。
+- 生产 HTTP 冒烟测试：通过。首页和 `404.html` 返回 HTTP 200；鸡尾酒详情、登录页和未知深链接返回 GitHub Pages 预期的 HTTP 404，但响应体均为完整 SPA 入口，并包含 `/WishToday/assets/` 下的生产资源路径。
+- 生产浏览器冒烟测试：通过。直接访问 `/WishToday/cocktails/old-fashioned` 可正确渲染古典鸡尾酒详情、风味图谱、配料清单、调制步骤与 DIY 入口，控制台无应用错误；首页最终落在 `/WishToday/home`。
+- 路由回归测试：通过。自动化测试覆盖首页、详情、登录以及未知路由重定向到 `/home`；生产构建使用同一套路由配置。
 
-## 发布阻塞项
+## GitHub Pages 深链接说明
 
-仓库所有者需要在 GitHub 仓库执行一次设置：
+GitHub Pages 不提供服务端 SPA 重写规则。直接请求详情、登录或未知路由时，网络层会返回 HTTP 404 和项目的 `404.html`；该文件与 `index.html` 内容一致，因此浏览器仍会加载 React 应用，并由客户端路由渲染目标页面或将未知路由重定向到 `/home`。网络面板中的 404 是平台限制下的预期行为，不代表页面不可用。
 
-1. 打开 `Settings -> Pages`。
-2. 在 `Build and deployment` 中将 `Source` 设为 `GitHub Actions`。
-3. 手动重新运行 `Deploy GitHub Pages` 工作流，或在 `main` 产生新的有效提交后等待自动运行。
+## 已解除发布阻塞
 
-该设置需要仓库管理权限。工作流自带的 `GITHUB_TOKEN` 不能首次启用 Pages；`actions/configure-pages` 的自动启用模式需要额外的个人访问令牌或具备 `administration:write` 与 `pages:write` 权限的 GitHub App，因此本次发布不引入额外密钥。
-
-Pages 启用并且工作流成功后，需对生产首页、鸡尾酒详情、登录页、未知路由回退和至少一个直接访问的深链接执行生产环境冒烟测试，才能将发布状态更新为“已发布”。
+- 仓库 Pages 的 `Build and deployment -> Source` 已设置为 `GitHub Actions`。
+- `github-pages` Environment 原本仅允许 `codex/archival-manuscript-visuals` 部署；现已新增 `main` 允许规则。
+- 环境策略修正后重新运行工作流，Attempt 3 已成功完成生产部署。
 
 ## 版本归档状态
 
@@ -55,10 +57,12 @@ Pages 启用并且工作流成功后，需对生产首页、鸡尾酒详情、�
 - `v0.1.0` 标注标签对象：`d32943da833c8fc708497e4adbfd4c2c864e1750`
 - `v0.1.0` 指向的签收提交：`a63d3996d72734120c7e962491d7274b0c32ea9f`
 - 本地与远端标签引用一致，标签保持不变。
+- 本次部署收尾文档提交晚于 v0.1.0 签收提交，不移动或重建已归档标签。
 
 ## 已知非阻塞问题
 
 - 当前部署仍使用本地 mock 数据和 mock 认证，尚未接入真实后端与 API。这是 v0.1.0 已确认的 MVP 边界。
+- GitHub Pages 仓库当前为公开可见。该状态不会在发布收尾中自动修改，仓库所有者需确认是否符合项目预期。
 
 ## 已解决遗留问题
 
