@@ -4,7 +4,8 @@
 - 部署版本：v0.1.0
 - 部署平台：GitHub Pages
 - 生产地址：`https://zhbptpt.github.io/WishToday/`
-- 发布状态：待远端工作流验证
+- 发布状态：部署准备完成，生产发布被仓库 Pages 设置阻塞
+- GitHub Actions：`https://github.com/zhbptpt/WishToday/actions/runs/31611992395`
 
 ## 平台决策
 
@@ -31,9 +32,29 @@ WishToday MVP 是使用本地 mock 数据和 mock 认证的 Vite 单页应用，
 - 全量测试：通过（22 个 Vitest 测试文件、106 项测试；2 项部署配置测试）
 - TypeScript 类型检查：通过
 - GitHub Pages 生产构建：通过
+- 依赖安全审计：通过（`npm audit`，0 项已知漏洞）
 - 本地生产路由冒烟测试：通过（首页、详情、登录与未知路由回退）
-- GitHub Actions 发布工作流：待复验
-- 生产 URL 冒烟测试：待复验
+- GitHub Actions 发布工作流：失败。依赖安装与全部自动化测试通过，`Configure GitHub Pages` 因仓库尚未启用 Pages 而失败，后续构建与部署步骤被跳过。
+- 生产 URL 冒烟测试：未通过。`https://zhbptpt.github.io/WishToday/` 当前返回 HTTP 404，与 Pages 尚未启用的状态一致。
+
+## 发布阻塞项
+
+仓库所有者需要在 GitHub 仓库执行一次设置：
+
+1. 打开 `Settings -> Pages`。
+2. 在 `Build and deployment` 中将 `Source` 设为 `GitHub Actions`。
+3. 手动重新运行 `Deploy GitHub Pages` 工作流，或在 `main` 产生新的有效提交后等待自动运行。
+
+该设置需要仓库管理权限。工作流自带的 `GITHUB_TOKEN` 不能首次启用 Pages；`actions/configure-pages` 的自动启用模式需要额外的个人访问令牌或具备 `administration:write` 与 `pages:write` 权限的 GitHub App，因此本次发布不引入额外密钥。
+
+Pages 启用并且工作流成功后，需对生产首页、鸡尾酒详情、登录页、未知路由回退和至少一个直接访问的深链接执行生产环境冒烟测试，才能将发布状态更新为“已发布”。
+
+## 版本归档状态
+
+- 初始部署配置提交：`7461fb2e236d082439b975922fbccefc36cbbf45`
+- `v0.1.0` 标注标签对象：`d32943da833c8fc708497e4adbfd4c2c864e1750`
+- `v0.1.0` 指向的签收提交：`a63d3996d72734120c7e962491d7274b0c32ea9f`
+- 本地与远端标签引用一致，标签保持不变。
 
 ## 已知非阻塞问题
 
