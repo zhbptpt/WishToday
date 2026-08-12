@@ -159,4 +159,27 @@ describe("CocktailDetailPage mobile layout", () => {
       /@media \(max-width: 620px\)[\s\S]*?\.sticky-action\.book-page-navigation\s*\{[\s\S]*?right: 49px;[\s\S]*?bottom: 30px;/,
     );
   });
+
+  it("presents the detail DIY entry as a warm brown ink-wash action", () => {
+    const page = readFileSync(
+      new URL("./CocktailDetailPage.tsx", import.meta.url),
+      "utf8",
+    );
+    const stylesheet = readFileSync(
+      new URL("../styles/global.css", import.meta.url),
+      "utf8",
+    );
+
+    expect(page).toContain("cocktail-detail-diy-action");
+    expect(page).toContain(">DIY 调酒</BookPageAction>");
+    expect(stylesheet).toMatch(
+      /\.app-shell--cocktail-detail-book \.cocktail-detail-diy-action\s*\{[\s\S]*?min-width: 140px;[\s\S]*?min-height: 50px;[\s\S]*?color: #f2d694;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--cocktail-detail-book \.cocktail-detail-diy-action::before\s*\{[\s\S]*?cocktail-ink-wash-wide\.png[\s\S]*?filter: none;/,
+    );
+    expect(stylesheet).toMatch(
+      /\.app-shell--cocktail-detail-book \.cocktail-detail-diy-action:focus-visible\s*\{[\s\S]*?outline:/,
+    );
+  });
 });
