@@ -1,16 +1,16 @@
 # 05 WishToday v0.2.0 实施计划
 
-> **给执行代理：** 必须使用 `superpowers:subagent-driven-development`（推荐）或 `superpowers:executing-plans` 按任务执行；使用复选框逐步记录进度。除 Task 1 明确得到 `GO` 外，不得开始 Task 4 及之后的云端实现。
+> **给执行代理：** 必须使用 `superpowers:subagent-driven-development`（推荐）或 `superpowers:executing-plans` 按任务执行；使用复选框逐步记录进度。Task 5 新架构安全门禁得到 `GO` 前，不得开始 Task 6 及之后的私人数据实现。
 
-状态：已由用户书面签收，可交接到阶段 06 实现
+状态：修订计划待用户签收
 负责角色：工程计划员
 日期：2026-08-13
 
 **目标：** 在不破坏 v0.1.0 核心链路与沉浸式笔记本视觉的前提下，实现真实邮箱账户、云端私人笔记本、幂等保存、跨设备读取和本地配方主动导入。
 
-**架构：** 保留 React 19、TypeScript、Vite、React Router、Zustand 和 GitHub Pages；新增 Supabase Auth、PostgreSQL、RLS、Edge Functions 与 TanStack Query。Zustand 仅管理本地草稿、旧配方和待恢复动作，服务端状态全部由 Service/Repository 合约与 TanStack Query 管理。
+**架构：** 保留 React 19、TypeScript、Vite、React Router、Zustand、TanStack Query 和 GitHub Pages；新增严格限域的 NestJS 认证与私人数据网关。浏览器只调用 `/api/v1`，NestJS 通过显式 PostgreSQL 事务访问 Supabase PostgreSQL；密码凭据、Refresh Session、`session_version` 和密码重置 operation 终态位于同一数据库边界，RLS 作为默认拒绝的纵深保护。
 
-**技术栈：** React 19、TypeScript 5.8、Vite 7、React Router 7、Zustand 5、Vitest 3、Supabase、TanStack Query、Playwright、GitHub Actions/Pages。
+**技术栈：** React 19、TypeScript 5.8、Vite 7、React Router 7、Zustand 5、TanStack Query 5、Vitest 3、NestJS 11、Node.js 22、`pg` 8、Argon2id、`jose` 6、PostgreSQL、Supabase 数据库、Resend 邮件、Playwright、Render、GitHub Actions/Pages。
 
 ## 输入
 
@@ -18,12 +18,15 @@
 - `docs/development-process/01_project_brief.md`
 - `docs/development-process/02_requirements_spec.md`
 - `docs/development-process/03_design_spec.md`
-- `docs/development-process/04_technical_design.md`
-- 当前 React/Vite 仓库、测试、GitHub Pages 与 Actions 配置
+- 已签收修订版 `docs/development-process/04_technical_design.md`
+- `docs/technical-spikes/2026-08-13-supabase-auth-capability-gate.md`
+- 当前 React/Vite 仓库、测试、GitHub Pages 与 GitHub Actions 配置
 
-## 范围
+## 修订说明
 
-本阶段只把已签收设计拆成有序、可测试、可回滚的实施任务，定义文件职责、跨任务接口、验证命令、停止条件和提交边界。本阶段不编写业务代码，不创建 Supabase 项目，不部署环境。
+原计划 Task 1 已执行并得到 Supabase Auth `NO-GO`。原计划中 Supabase Auth、Custom Access Token Hook、浏览器 PostgREST、Edge Functions 和 `/functions/v1`/`/rest/v1` 接口全部废止；`e30b02a` 的报告作为历史决策证据保留，不继续补做原门禁。
+
+本计划不修改需求和页面设计，只替换认证与服务端实施路径。原 Task 3 的本地持久化迁移尚未实施，应纳入新计划正常执行。
 
 ## 全局约束
 
@@ -32,60 +35,78 @@
 - 手机端保持“整屏即书页”，账户入口使用右侧书页索引签；不得添加传统顶栏或底部导航。
 - 本地配方只有用户点击“立即导入”后才能上传；稍后处理、成功或失败均不得删除本地记录。
 - 私人配方只能创建和只读；不得增加编辑、删除、分享、发布、收藏、搜索或筛选。
-- 不加入社区、摇一摇、个人资料、账户中心、手机号/第三方登录、经典鸡尾酒配方库。
-- 不引入 Flutter、NestJS、Redis、对象存储或管理后台。
-- 所有写入必须幂等；私人请求必须由服务端所有权校验和 RLS 保护。
-- 密码、验证/重置令牌、Refresh Token、`service_role` 和私人配方正文不得进入业务日志或 Zustand 持久化。
+- 不加入社区、摇一摇、个人资料、账户中心、手机号/第三方登录或经典鸡尾酒配方库。
+- 不引入 Flutter、Redis、对象存储或管理后台。
+- NestJS 只承担认证、会话、密码恢复、私人配方、导入、限流和必要观测；不得扩展为社区或推荐后端。
+- 浏览器不得直接调用 Supabase Auth、PostgREST 或 Edge Functions，不得依赖 `@supabase/supabase-js`。
+- 所有写入必须幂等；私人请求必须由 NestJS 显式校验身份/所有权，并由 RLS 纵深保护。
+- 密码、验证/重置 token、Refresh Token、数据库凭据和私人配方正文不得进入业务日志或 Zustand 持久化。
 - 网络操作 200ms 后显示处理中，10 秒后进入可恢复超时；写请求不得无幂等键盲重试。
-- 每个实现任务采用测试先行，相关测试、类型检查与构建通过后独立提交。
+- production 前端与 API 必须使用同一可注册域的不同子域；未配置自定义域前，v0.2.0 账户入口保持关闭。
+- 每个实现任务采用测试先行，相关测试、类型检查与构建通过后独立提交，并更新 `docs/development-process/06_implementation_log.md`。
 
-## Go/No-Go 门禁
+## 固定技术选择
 
-Task 1 是硬性前置门禁。执行者必须同时取得官方契约证据和故障注入结果，证明选定认证实现能够满足：
+| 类别 | 选择 | 理由与边界 |
+| --- | --- | --- |
+| 服务框架 | NestJS 11 + Express adapter | 与 Node 22 兼容，模块/Guard/Interceptor/Test 边界成熟 |
+| 数据访问 | `pg` 8 + 手写参数化 repository | 密码重置和 RLS 上下文需要明确事务/连接控制；不引入 ORM 隐藏边界 |
+| 校验 | Nest DTO + `class-validator`/`class-transformer` | HTTP 输入统一白名单、长度与格式校验 |
+| 密码 | `argon2` 0.45，Argon2id | 成熟内存困难型实现；参数由 Task 1 基准固定并写入哈希 |
+| Token | `jose` 6 | 固定算法、issuer、audience、`kid` 与密钥轮换；不手写 JWT |
+| 邮件 | Resend 适配器 | API 简单、支持测试域；所有调用置于 `MailPort` 后以便替换 |
+| API 部署 | Render Web Service | 长期 Node 进程、HTTPS、自定义域、健康检查、Secrets 与 staging 环境 |
+| 数据库 | Supabase PostgreSQL | 只使用数据库、备份与连接能力；不使用 Auth/PostgREST/Edge Functions |
+| 限流 | PostgreSQL 精确窗口 | 多实例共享计数；MVP 不引入 Redis |
 
-1. 服务端可信识别 recovery 会话并换取短期、一次性续执行能力。
-2. Custom Access Token Hook 可写入邮箱验证、`session_version` 和账户安全状态。
-3. 旧 Access Token 可由 RLS 的数据库版本比较立即拒绝。
-4. 密码更新后可全局撤销既有 Refresh Token。
-5. 密码更新外部调用支持服务端幂等键，或提供可契约性查询的终局状态；不得用超时、租约过期或实测行为猜测结果。
-
-五项全部满足才记录 `GO`。任一项不满足即记录 `NO-GO`，停止 Task 4 及之后工作，回到技术设计阶段选择具备该保证的认证边界。不得降低“密码重置后全部旧会话立即失效”的验收标准。
+版本安装时使用当日审阅到的兼容版本并提交 lockfile；NestJS 包保持同一 minor。升级不与业务任务混合。
 
 ## 文件与模块规划
 
 ```text
 src/
-├─ app/AppProviders.tsx                  # QueryClient、认证会话启动
-├─ lib/config/env.ts                     # 浏览器环境变量校验
-├─ lib/supabase/client.ts                # 唯一浏览器 Supabase 客户端
-├─ services/api/types.ts                 # ApiResult 与稳定错误码
-├─ services/auth/                        # Auth SDK 封装与重置流程
-├─ services/recipes/                     # 配方 Repository 合约及 Supabase 实现
-├─ services/imports/                     # 导入批次合约及 Supabase 实现
-├─ queries/                              # Query keys、查询和 mutation hooks
-├─ store/persistence/                    # v0.1 -> v0.2 迁移与存储探测
-├─ routes/                               # PendingAction、保护路由与回调入口
+├─ app/AppProviders.tsx                  # QueryClient 与认证启动
+├─ lib/api/apiClient.ts                  # /api/v1 HTTP、超时、credentials、错误映射
+├─ lib/config/env.ts                     # VITE_API_BASE_URL 与功能开关
+├─ services/api/types.ts                 # ApiResult、ApiErrorCode、分页类型
+├─ services/auth/                        # 浏览器认证/会话/密码重置合约
+├─ services/recipes/                     # 配方 Repository 合约与 HTTP 实现
+├─ services/imports/                     # 导入合约与 HTTP 实现
+├─ queries/                              # Query keys、queries、mutations
+├─ store/persistence/                    # v0.1 -> v0.2 迁移与降级存储
+├─ routes/                               # PendingAction、保护路由、fragment 消费
 ├─ components/account/                   # 账户索引签与菜单
 ├─ components/imports/                   # 主动导入便笺流程
-└─ pages/auth/                           # 注册、验证、登录和重置章节
+└─ pages/auth/                           # 注册、验证、登录与重置章节
+
+server/
+├─ package.json                          # 独立服务依赖与脚本
+├─ package-lock.json                     # 服务端锁文件
+├─ tsconfig.json
+├─ src/main.ts                           # 安全中间件、CORS、validation、cookie
+├─ src/app.module.ts
+├─ src/config/                           # 服务端 env schema
+├─ src/common/                           # ApiResult、requestId、日志与异常映射
+├─ src/database/                         # pg pool、事务、用户上下文、健康检查
+├─ src/auth/                             # 注册、验证、登录与 Access Token
+├─ src/sessions/                         # Refresh 轮换、重放检测、退出与 AuthGuard
+├─ src/account-recovery/                 # 恢复 token 与原子密码重置 operation
+├─ src/rate-limit/                       # PostgreSQL 精确窗口计数
+├─ src/mail/                             # MailPort、Resend adapter 与测试 adapter
+├─ src/recipes/                          # 私人配方 API/repository
+├─ src/imports/                          # 导入批次、租约与重试
+└─ test/                                 # API、数据库、双会话与故障注入
 
 supabase/
-├─ config.toml
-├─ migrations/                           # 表、约束、RLS、Hook 与数据库函数
-├─ functions/_shared/                    # 鉴权、CORS、错误和日志工具
-├─ functions/save-recipe/
-├─ functions/import-recipes/
-├─ functions/get-import-batch/
-├─ functions/retry-recipe-import/
-├─ functions/complete-password-reset/
-└─ tests/                                # pgTAP/RLS/幂等集成测试
+├─ migrations/                           # 账户、会话、配方、导入、限流、RLS
+└─ tests/                                # SQL 约束、事务与 RLS 测试
 
 e2e/                                     # Playwright 双账户、多上下文与 Pages 回调
-scripts/supabase/                        # 能力门禁和 staging 冒烟探针
-docs/technical-spikes/                   # Task 1 的可审计 Go/No-Go 证据
+scripts/deployment/                      # 配置检查与生产冒烟
+docs/technical-spikes/                   # 新架构门禁证据
 ```
 
-现有 `src/pages/*`、`src/store/useWishTodayStore.ts`、`src/styles/global.css` 只做计划内接线。不得先行重构 5,000 行样式表或重写 v0.1.0 页面。
+现有 `src/pages/*`、`src/store/useWishTodayStore.ts`、`src/styles/global.css` 只做计划内接线，不重构全部样式或重写 v0.1.0 页面。
 
 ## 共享接口
 
@@ -95,6 +116,7 @@ docs/technical-spikes/                   # Task 1 的可审计 Go/No-Go 证据
 export type ApiErrorCode =
   | "AUTH_REQUIRED"
   | "EMAIL_UNVERIFIED"
+  | "INVALID_CREDENTIALS"
   | "SESSION_REVOKED"
   | "VALIDATION_FAILED"
   | "NOT_FOUND"
@@ -113,16 +135,24 @@ export type ApiResult<T> =
       retryAfter?: number;
     };
 
+export type SessionUser = {
+  id: string;
+  email: string;
+  emailVerified: true;
+};
+
+export type AuthSession = {
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  user: SessionUser;
+};
+
 export type PendingAction =
-  | {
-      kind: "saveRecipe";
-      draftId: string;
-      saveIntentId: string;
-      expiresAt: string;
-    }
+  | { kind: "saveRecipe"; draftId: string; saveIntentId: string; expiresAt: string }
   | { kind: "openNotebook"; expiresAt: string }
   | { kind: "openRecipe"; recipeId: string; expiresAt: string };
 
+export type PasswordResetStatus = "pending" | "completed" | "failed";
 export type ImportItemStatus =
   | "pending"
   | "processing"
@@ -131,395 +161,683 @@ export type ImportItemStatus =
   | "failed";
 ```
 
-稳定标识统一使用 `draftId`、`saveIntentId`、`localRecordId`、`clientBatchId`；数据库列使用对应 snake_case。`PendingAction` 只允许上面三种白名单，不接受任意 URL；创建时默认 24 小时后过期，保存动作必须同时匹配仍存在的 `draftId` 与原 `saveIntentId`。
+稳定标识统一使用 `draftId`、`saveIntentId`、`localRecordId`、`clientBatchId`、`operationId`；数据库列使用对应 snake_case。`PendingAction` 创建时默认 24 小时后过期，不接受任意 URL。
+
+## HTTP 与安全约定
+
+- API 基路径固定为 `/api/v1`，健康检查为 `/healthz`。
+- Access Token 使用 `Authorization: Bearer`，只保存在浏览器内存，默认 10 分钟有效。
+- Refresh Token 默认 30 天有效，原值只存在于 `Secure`、`HttpOnly`、`SameSite=Lax` Cookie；数据库只存 SHA-256 + 服务端 pepper 的哈希。
+- production 使用 `app.<domain>` 与 `api.<domain>`；Cookie 不设置宽泛 `Domain`，由 API host-only 持有。
+- Cookie 写接口要求受控 `Origin` 和双提交 CSRF token；CORS 只允许配置列表并开启 credentials。
+- Access Token 固定 `RS256`、issuer `wishtoday-api`、audience `wishtoday-web`，通过 `kid` 支持签名密钥轮换。
+- 数据库业务请求统一使用 `withUserTransaction(userId, fn)`，事务内执行 `select set_config('app.user_id', $1, true)`；任何 repository 不得自行从请求体接收 owner ID。
+
+## 新架构 Go/No-Go 门禁
+
+Task 5 是私人数据实现前的硬门禁。只有以下证据全部为 `PASS` 才记录 `GO`：
+
+1. 密码重置在单个 PostgreSQL 事务中更新密码哈希、递增 `session_version`、撤销全部 Refresh Session、消费 recovery token 并写入 operation `completed`。
+2. 任一步骤注入数据库异常时事务全部回滚，不出现密码与 Session 状态分裂。
+3. 相同 `operationId` 重试不重复递增版本；响应丢失后提交同一 recovery token 可查询通用终态。
+4. 两个设备的旧 Access Token 在重置提交后立即被 NestJS 拒绝，旧 Refresh Token 均无法刷新，新密码可重新登录。
+5. Refresh Token 轮换重放可撤销对应 Session family；当前设备退出不影响其他设备。
+6. PostgreSQL 限流并发测试满足每 IP 每 5 分钟 30 次、每目标邮箱每小时 3 封。
+7. RLS 用户上下文在连接池并发请求间不泄漏，缺失上下文默认拒绝。
+
+任一失败即 `NO-GO`，停止 Task 6 及以后任务，回到 Task 20 修订；不得以短 Access Token、前端退出或等待自然过期替代立即失效。
 
 ## 依赖顺序
 
 ```text
-Task 1 GO
-  -> Task 2 工程基线
-  -> Task 3 本地迁移
-  -> Task 4 数据库与 RLS
-  -> Task 5 认证与会话
-  -> Task 6 密码重置全局失效
-  -> Task 7 云端保存与只读查询
-  -> Task 8 本地主动导入
-  -> Task 9 账户与认证界面
-  -> Task 10 私人笔记本界面
-  -> Task 11 E2E、可访问性与范围回归
-  -> Task 12 CI、部署门禁与发布准备
+Task 1 工程与部署探针
+  -> Task 2 本地持久化迁移
+  -> Task 3 账户数据库与认证核心
+  -> Task 4 会话、限流与密码重置
+  -> Task 5 新架构安全门禁 GO
+  -> Task 6 RLS 与私人数据上下文
+  -> Task 7 前端认证适配
+  -> Task 8 配方保存与只读查询
+  -> Task 9 本地主动导入
+  -> Task 10 认证与账户界面
+  -> Task 11 私人笔记本与跨设备状态
+  -> Task 12 E2E、安全、可访问性与范围回归
+  -> Task 13 CI、部署门禁与发布准备
 ```
 
-Task 3 可在 Task 1 证据收集期间独立开发，但不得合并到发布分支绕过 `NO-GO`；其余任务按上图顺序执行。
+Task 2 可在 Task 1 的外部服务探针期间开发；Task 6 及以后不得绕过 Task 5。
 
 ---
 
-### Task 1：Supabase 认证能力硬门禁
+### Task 1：NestJS、PostgreSQL 与部署工程基线
 
-**需求覆盖：** AUTH-02、AUTH-03、AUTH-04、安全与会话全局失效。
-
-**文件：**
-- 新建：`scripts/supabase/auth-capability-probe.mjs`
-- 新建：`scripts/supabase/auth-capability-probe.test.mjs`
-- 新建：`docs/technical-spikes/2026-08-13-supabase-auth-capability-gate.md`
-- 修改：`package.json`
-
-**产出接口：** `npm run probe:supabase-auth`；报告结论必须是 `GO` 或 `NO-GO`，并记录 Supabase 产品版本、官方文档 URL、原文摘录、探针环境、故障注入结果和证据时间。报告还必须记录 Auth 限流与 CAPTCHA 的可配置能力；若无法满足已签收阈值，Task 5 在受控认证入口或独立认证网关方案通过审阅前不得开始。
-
-- [x] **Step 1：先写探针契约测试**
-
-  测试 `evaluateCapabilityGate(evidence)` 仅在五项证据均为 `contractual-and-observed` 时返回 `GO`；任何 `observed-only`、`unsupported` 或 `unknown` 均返回 `NO-GO`。
-
-- [x] **Step 2：运行红灯测试**
-
-  执行 `node --test scripts/supabase/auth-capability-probe.test.mjs`，预期因探针模块尚不存在而失败。
-
-- [ ] **Step 3：实现最小探针并执行 staging 故障注入**
-
-  使用隔离测试账户验证 recovery、Hook claim、旧 Access Token 的 RLS 拒绝、Refresh Token 全局撤销和密码更新未知结果。探针只输出脱敏用户哈希、能力名和状态，不打印邮箱、密码或令牌。
-
-  阻塞记录（2026-08-13）：最小探针已实现；当前没有 Supabase staging 项目、凭据、CLI 或可用本地容器，因此故障注入未执行，所有需观测项保持 `unknown`。
-
-- [x] **Step 4：完成契约证据审阅**
-
-  行为测试通过但官方契约未承诺幂等键或可查询终态时仍必须写 `NO-GO`。同时验证密码登录/令牌端点每 IP 每 5 分钟最多 30 次、注册/验证/重置邮件每目标地址每小时最多 3 封及 CAPTCHA 能力；平台不支持时记录受控认证入口的阻塞决策。报告须明确“可继续 Task 4”或“返回 Task 20 改选认证实现”。
-
-- [x] **Step 5：验证并提交**
-
-  执行 `npm run probe:supabase-auth` 和 `node --test scripts/supabase/auth-capability-probe.test.mjs`；提交 `test: verify Supabase auth capability gate`。结论为 `NO-GO` 时在此停止，不创建后续云端功能提交。
-
-**回滚：** 探针只使用隔离账户；执行后删除隔离账户与测试数据，不改生产配置。
-
-### Task 2：工程依赖、环境与 Provider 基线
-
-**依赖：** Task 1 = `GO`。
+**需求覆盖：** 技术基线、部署可行性、安全密钥边界。
 
 **文件：**
-- 修改：`package.json`、`package-lock.json`、`.gitignore`、`src/main.tsx`
+- 修改：`package.json`、`.gitignore`
 - 新建：`.env.example`、`src/lib/config/env.ts`、`src/lib/config/env.test.ts`
-- 新建：`src/lib/supabase/client.ts`、`src/app/AppProviders.tsx`、`src/app/AppProviders.test.tsx`
+- 新建：`server/package.json`、`server/package-lock.json`、`server/tsconfig.json`、`server/.env.example`
+- 新建：`server/src/main.ts`、`server/src/app.module.ts`
+- 新建：`server/src/config/env.ts`、`server/src/config/env.spec.ts`
+- 新建：`server/src/common/api-result.ts`、`server/src/common/request-id.middleware.ts`
+- 新建：`server/src/database/database.module.ts`、`server/src/database/database.service.ts`、`server/src/database/database.service.spec.ts`
+- 新建：`server/src/health/health.controller.ts`、`server/test/health.e2e-spec.ts`
+- 新建：`render.yaml`
 
-**产出接口：** `getPublicEnv(): { supabaseUrl: string; supabaseAnonKey: string; cloudFeaturesEnabled: boolean }`；`getSupabaseClient()`；`AppProviders`。
+**产出接口：** `getPublicEnv(): { apiBaseUrl: string; cloudFeaturesEnabled: boolean }`；`DatabaseService.transaction<T>(fn)`；`GET /healthz`。
 
-- [ ] 写失败测试，覆盖缺少 URL/匿名公钥时生产构建失败、云端开关关闭时不创建客户端、测试环境可注入配置。
-- [ ] 运行 `npm test -- src/lib/config/env.test.ts src/app/AppProviders.test.tsx`，确认红灯。
-- [ ] 安装固定版本的 `@supabase/supabase-js`、`@tanstack/react-query`，开发依赖加入 `@playwright/test` 与 Supabase CLI；不得加入后置技术栈。
-- [ ] 实现环境校验、单例 Supabase 客户端、QueryClient 默认 GET 最多重试两次/写请求不自动重试，并在 `main.tsx` 包裹 `AppProviders`。
-- [ ] 更新 `.env.example`，只列 `VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY`、`VITE_CLOUD_FEATURES_ENABLED=false`；服务端密钥不得使用 `VITE_` 前缀。
-- [ ] 运行 `npm test`、`npm run typecheck`、`npm run build:pages`；提交 `chore: add Supabase and query foundation`。
+- [ ] **Step 1：写环境与健康检查红灯测试**
 
-**回滚：** 功能开关默认关闭；回滚 Provider 后 v0.1.0 mock 链路仍可运行。
+  前端测试缺失 `VITE_API_BASE_URL` 且云端开关开启时抛错；服务端测试缺失 `DATABASE_URL`、JWT key、token pepper 或允许 origin 时启动失败。E2E 断言：
 
-### Task 3：版本化本地持久化与损坏隔离
+  ```ts
+  await request(app.getHttpServer())
+    .get("/healthz")
+    .expect(200, { status: "ok" });
+  ```
 
-**依赖：** 可与 Task 1 并行准备；进入云端集成前必须完成。
+- [ ] **Step 2：运行红灯测试**
+
+  执行 `npm test -- src/lib/config/env.test.ts` 和 `npm --prefix server test -- --runInBand`；预期因模块不存在失败。
+
+- [ ] **Step 3：创建独立服务包并固定依赖**
+
+  服务 dependencies 包含 NestJS 11、`pg` 8、`argon2`、`jose` 6、`class-validator`、`class-transformer`、`cookie-parser`、`resend`；devDependencies 包含 TypeScript、Vitest、Supertest、`tsx` 与类型包。根前端新增 `@tanstack/react-query` 和 `@playwright/test`。不得安装 Supabase JS SDK、ORM 或 Redis 客户端。
+
+- [ ] **Step 4：实现最小服务与数据库事务边界**
+
+  `DatabaseService.transaction` 必须从 pool 取得单一 client，并保证 release：
+
+  ```ts
+  async transaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+      const value = await work(client);
+      await client.query("commit");
+      return value;
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  ```
+
+- [ ] **Step 5：配置安全启动与 Render 蓝图**
+
+  `main.ts` 设置 DTO whitelist/forbidNonWhitelisted、受控 CORS、cookie parser、1MB body 上限和 request ID。`render.yaml` 只声明环境变量名，不写值；健康检查指向 `/healthz`。前端 `.env.example` 只包含 `VITE_API_BASE_URL` 和 `VITE_CLOUD_FEATURES_ENABLED=false`。
+
+- [ ] **Step 6：执行 Render/Supabase 连接探针**
+
+  在隔离 staging 验证 Node 22 服务可通过 SSL 连接数据库、完成 `begin/set_config/rollback`、健康检查和自定义域配置路径。只记录平台、区域、延迟和脱敏连接类型，不记录凭据。
+
+- [ ] **Step 7：验证并提交**
+
+  执行 `npm test`、`npm run typecheck`、`npm run build:pages`、`npm --prefix server test`、`npm --prefix server run typecheck`、`npm --prefix server run build`；提交 `chore: scaffold NestJS API foundation`。
+
+**回滚：** 前端云端开关默认关闭；删除未使用的 staging 服务不影响 v0.1.0。
+
+### Task 2：版本化本地持久化与损坏隔离
+
+**依赖：** Task 1；可与外部部署探针并行。
 
 **文件：**
 - 修改：`src/types/domain.ts`、`src/store/useWishTodayStore.ts`、`src/store/useWishTodayStore.test.ts`
+- 修改：`src/pages/previewRecipeSteps.ts`
 - 新建：`src/store/persistence/schema.ts`、`src/store/persistence/migrateV1ToV2.ts`
 - 新建：`src/store/persistence/migrateV1ToV2.test.ts`、`src/store/persistence/storage.ts`、`src/store/persistence/storage.test.ts`
-- 修改：`src/pages/previewRecipeSteps.ts`
+- 新建：`src/routes/pendingAction.ts`、`src/routes/pendingAction.test.ts`
 
-**产出接口：** `PERSISTENCE_VERSION = 2`；`migrateV1ToV2(raw): V2PersistedState`；`createResilientStorage()`；`DiyDraft.draftId`、`DiyDraft.saveIntentId`；`localLegacyRecipes`；`pendingAction?: PendingAction`；`persistenceAvailable`。
+**产出接口：** `PERSISTENCE_VERSION = 2`；`migrateV1ToV2(raw): V2PersistedState`；`createResilientStorage()`；`localLegacyRecipes`；`pendingAction?: PendingAction`；`persistenceAvailable`。
 
-- [ ] 先写 fixture 测试：完整 v0.1 状态、缺步骤配方、来源不可解析、单条损坏、重复迁移、无 localStorage 六类场景。
-- [ ] 运行 `npm test -- src/store/persistence src/store/useWishTodayStore.test.ts`，确认新断言失败。
-- [ ] 首次迁移先复制原值到 `wishtoday-flow-state-v1-backup`；将 `savedRecipes` 逐条转换为带 `localRecordId` 的只读记录，并使用 `resolvePreviewSteps` 或明确的 `v0.1-fallback` 步骤。
-- [ ] 从持久化白名单移除模拟 `session`、`saveStatus`、`saveError` 和云端列表；仅在草稿及其 `saveIntentId` 可验证时，把旧 `redirectAction` 转成默认 24 小时有效的 `PendingAction`，否则安全丢弃。
-- [ ] localStorage 不可用时切换内存存储并暴露 `persistenceAvailable=false`，不得抛出导致应用白屏。
-- [ ] 运行相关测试、`npm run typecheck`、`npm run build`；提交 `feat: migrate local flow state to v2`。
+- [ ] **Step 1：写六类 fixture 红灯测试**
 
-**回滚：** 永不自动删除 `wishtoday-flow-state-v1-backup`；回滚前端不得覆盖该备份。
+  覆盖完整 v0.1 状态、缺步骤配方、来源不可解析、单条损坏、重复迁移、localStorage 抛错；保存动作必须同时匹配 `draftId` 与 `saveIntentId`。
 
-### Task 4：PostgreSQL schema、数据库函数与 RLS
+- [ ] **Step 2：运行红灯测试**
 
-**依赖：** Task 1 = `GO`，Task 2 完成。
+  执行 `npm test -- src/store/persistence src/routes/pendingAction.test.ts src/store/useWishTodayStore.test.ts`，预期新模块/字段缺失。
 
-**文件：**
-- 新建：`supabase/config.toml`
-- 新建：`supabase/migrations/202608130001_account_security.sql`
-- 新建：`supabase/migrations/202608130002_private_recipes.sql`
-- 新建：`supabase/migrations/202608130003_recipe_imports.sql`
-- 新建：`supabase/migrations/202608130004_rls_and_auth_hook.sql`
-- 新建：`supabase/tests/account_security.test.sql`、`supabase/tests/private_recipes_rls.test.sql`、`supabase/tests/import_idempotency.test.sql`
+- [ ] **Step 3：实现稳定标识与迁移**
 
-**产出接口：** `account_security`、`private_recipes`、`recipe_import_batches`、`recipe_import_items`；JWT Hook；只允许本人读取的 RLS；保存与导入唯一约束。
+  首次迁移复制原值到 `wishtoday-flow-state-v1-backup`。为草稿补入 UUID `draftId`/`saveIntentId`；将 `savedRecipes` 逐条转换为 `localLegacyRecipes`，保留原 ID 为 `localRecordId`，缺步骤时使用 `resolvePreviewSteps` 或标记 `migrationSource: "v0.1-fallback"`。
 
-- [ ] 先写 pgTAP 红灯测试，覆盖本人、其他账户、未验证邮箱、旧 `session_version`、`revocation_pending`、匿名用户和缺失安全行。
-- [ ] 执行 `supabase db reset && supabase test db`，确认表/策略未定义导致失败。
-- [ ] 按技术设计建立字段、JSONB 校验、部分唯一索引、导入租约约束、触发器回填与默认拒绝 RLS；客户端不得直接更新 `account_security`。
-- [ ] 添加并发测试，证明相同 `(owner_id, save_intent_id)` 和 `(owner_id, local_record_id)` 最多一条记录。
-- [ ] 再次执行 `supabase db reset`、`supabase test db`；用两个测试用户手动验证其他账户已知 ID 返回零行。
-- [ ] 提交 `feat: add private recipe schema and RLS`。
+- [ ] **Step 4：收窄持久化白名单**
 
-**回滚：** 迁移采用扩展式新增；不得在 v0.2.0 发布窗口删除旧列或成功写入的数据。
+  只持久化草稿、本地旧配方、待恢复动作、导入客户端标识和 schema 版本；移除模拟 `session`、`saveStatus`、`saveError` 和云端配方副本。`PendingAction` 默认 24 小时过期。
 
-### Task 5：认证 Service、会话恢复与受保护动作
+- [ ] **Step 5：实现存储降级**
 
-**依赖：** Task 2、Task 3、Task 4。
+  localStorage 不可用时切到内存，并设置 `persistenceAvailable=false`；不能白屏或声称刷新后可恢复。迁移本身不发网络请求。
+
+- [ ] **Step 6：验证并提交**
+
+  执行相关 Vitest、`npm run typecheck`、`npm run build:pages`；提交 `feat: migrate local flow state to v2`。
+
+**回滚：** 永不自动删除 v1 backup；回滚版本不得覆盖备份。
+
+### Task 3：账户数据库、注册验证与登录核心
+
+**依赖：** Task 1。
 
 **文件：**
-- 新建：`src/services/api/types.ts`、`src/services/api/errorMapping.ts`、`src/services/api/errorMapping.test.ts`
-- 新建：`src/services/auth/authService.ts`、`src/services/auth/authService.test.ts`
-- 新建：`src/services/auth/sessionService.ts`、`src/services/auth/sessionService.test.ts`
-- 新建：`src/routes/pendingAction.ts`、`src/routes/pendingAction.test.ts`、`src/routes/RequireVerifiedSession.tsx`
-- 修改：`src/app/AppProviders.tsx`、`src/routes/paths.ts`、`src/routes/AppRouter.tsx`
+- 新建：`supabase/migrations/202608130101_auth_accounts.sql`
+- 新建：`supabase/migrations/202608130102_auth_tokens.sql`
+- 新建：`supabase/migrations/202608130103_rate_limits.sql`
+- 新建：`supabase/tests/auth_constraints.test.sql`
+- 新建：`server/src/auth/*`、`server/src/mail/*`、`server/src/rate-limit/*`
+- 新建：`server/test/auth-register-login.e2e-spec.ts`
 
-**产出接口：** `signUp`、`signIn`、`signOutCurrentDevice`、`resendVerification`、`requestPasswordReset`、`verifyEmailToken`、`restoreSession`；`setPendingAction`、`consumePendingAction`。
+**产出接口：** `POST /api/v1/auth/register`、`POST /api/v1/auth/verify-email`、`POST /api/v1/auth/resend-verification`、`POST /api/v1/auth/login`；`PasswordHasher`；`TokenHasher`；`MailPort`；`RateLimitService.consume(key, window, limit)`。
 
-- [ ] 写失败测试，覆盖邮箱规范化、通用登录/找回反馈、未验证邮箱、当前设备退出、会话恢复、24 小时过期/非法 PendingAction、保存动作的草稿与 `saveIntentId` 匹配，以及公开页面不中断。
-- [ ] 运行上述 Vitest 文件，确认红灯。
-- [ ] 封装 Supabase Auth SDK，统一返回 `ApiResult`；Zustand 不保存 Access/Refresh Token，页面不得直接调用 Supabase。
-- [ ] 实现认证状态监听和保护路由：私人操作失效时记录白名单动作并去登录，主动退出时清除待自动执行动作。
-- [ ] 验证同一账户两个浏览器上下文可并行登录，单设备退出不影响另一个上下文。
-- [ ] 运行 `npm test`、`npm run typecheck`、`npm run build:pages`；提交 `feat: add verified auth session services`。
+- [ ] **Step 1：先写数据库和 API 红灯测试**
 
-**回滚：** 关闭云端开关后不挂载保护逻辑，保留公开 v0.1.0 链路。
+  覆盖邮箱唯一、token 哈希唯一、过期/消费约束、`session_version > 0`、通用注册反馈、未验证账户拒绝、错误密码统一 `INVALID_CREDENTIALS`。API 断言响应不含 `passwordHash`、token 哈希或邮箱存在性。
 
-### Task 6：密码重置失败关闭状态机
+- [ ] **Step 2：运行红灯测试**
 
-**依赖：** Task 1 对密码终态与全局撤销明确 `GO`，Task 4、Task 5。
+  对隔离测试库运行 migrations tests，并执行 `npm --prefix server test -- auth-register-login`；预期表和模块不存在。
+
+- [ ] **Step 3：实现账户 schema**
+
+  创建 `users`、`password_credentials`、`account_security`、`auth_sessions`、`email_verification_tokens`、`password_reset_tokens`、`password_reset_operations`、`rate_limit_counters`。认证表权限只授予认证 repository 运行角色，不创建本人可读密码策略。
+
+- [ ] **Step 4：实现密码与一次性 token 服务**
+
+  Argon2id 哈希参数写入哈希编码；原始验证/恢复 token 用 `randomBytes(32)` 生成，数据库只存带 pepper 的 SHA-256 哈希。比较使用恒定时间函数。邮件通过：
+
+  ```ts
+  export interface MailPort {
+    sendVerification(input: { to: string; link: string }): Promise<void>;
+    sendPasswordRecovery(input: { to: string; link: string }): Promise<void>;
+  }
+  ```
+
+- [ ] **Step 5：实现注册、验证与登录**
+
+  注册与重发无论邮箱存在与否都返回通用结果；验证 token 原子消费；登录只允许已验证 active 用户，创建 Session 并签发 Access Token。所有 DTO 有邮箱、密码和字段长度上限。
+
+- [ ] **Step 6：实现精确限流基础**
+
+  用 `(subject_hash, window_kind, window_start)` 唯一键和原子 upsert 计数，在执行 Argon2/发邮件前消费额度。日志只记录 `requestId`、动作和不可逆主体哈希。
+
+- [ ] **Step 7：验证并提交**
+
+  运行服务端单元/API/数据库测试、typecheck 和 build；提交 `feat: add account registration and login core`。
+
+**回滚：** 认证入口默认由功能开关关闭；schema 只新增，不删除历史数据。
+
+### Task 4：会话轮换、当前设备退出与原子密码重置
+
+**依赖：** Task 3。
 
 **文件：**
-- 新建：`supabase/functions/complete-password-reset/index.ts`
-- 新建：`supabase/functions/_shared/authGuard.ts`、`supabase/functions/_shared/apiResponse.ts`、`supabase/functions/_shared/safeLog.ts`
-- 新建：`supabase/tests/password_reset_state_machine.test.sql`
-- 新建：`src/services/auth/passwordResetService.ts`、`src/services/auth/passwordResetService.test.ts`
-- 新建：`src/routes/authFragment.ts`、`src/routes/authFragment.test.ts`
+- 新建：`server/src/sessions/*`、`server/src/account-recovery/*`
+- 新建：`server/src/common/auth.guard.ts`、`server/src/common/csrf.guard.ts`
+- 新建：`server/test/session-rotation.e2e-spec.ts`
+- 新建：`server/test/password-reset-transaction.e2e-spec.ts`
+- 新建：`server/test/password-reset-fault-injection.e2e-spec.ts`
 
-**产出接口：** `consumeAuthFragment()`；`exchangeRecoveryForContinuation()`；`completePasswordReset(newPassword)`；服务端 operation ID + lease + expected stage CAS/fencing。
+**产出接口：** `POST /api/v1/auth/refresh`、`GET /api/v1/auth/me`、`POST /api/v1/auth/logout`、`POST /api/v1/auth/password-recovery`、`POST /api/v1/auth/password-reset`、`POST /api/v1/auth/password-reset-operations/{id}/status`；`AuthGuard`。
 
-- [ ] 写失败测试覆盖 `locked -> password_updated -> tokens_revoked -> completed`、重复请求、worker lease 竞争、每阶段中断、外部结果未知、迟到 worker 和 continuation 过期。
-- [ ] 写 fragment 测试，证明初始化首个同步步骤读取后立即 `history.replaceState`，且不写日志、分析、剪贴板或持久化。
-- [ ] 运行单元与数据库测试，确认红灯。
-- [ ] 实现一次性 continuation、排他 Auth 调用、CAS/fencing 和失败关闭；`external_result_unknown` 只能依据 Task 1 已验证的契约终态恢复。
-- [ ] 用两个设备会话执行 staging 测试：重置后旧 Access Token 被 RLS 立即拒绝，旧 Refresh Token 无法刷新，新密码可重新登录。
-- [ ] 运行 `npm test`、`supabase test db` 和 Edge Function 集成测试；提交 `feat: add fail-closed password reset`。
+- [ ] **Step 1：写会话轮换红灯测试**
 
-**回滚：** 故障时关闭重置入口并保持账户失败关闭；不得把 `security_status` 人工改回 `active` 以绕过未知结果。
+  覆盖两个设备独立 Session、Refresh 原子轮换、旧 token 重放撤销 family、当前设备退出不影响另一设备、Access Token 过期/issuer/audience/算法错误拒绝。
 
-### Task 7：幂等云端保存与只读配方查询
+- [ ] **Step 2：写密码重置事务红灯测试**
 
-**依赖：** Task 4、Task 5。
+  断言成功事务同时改变密码、`session_version + 1`、全部 Session `revoked_at`、token `used_at` 和 operation `completed`；同 operation 重试版本不再增加。
+
+- [ ] **Step 3：写逐语句故障注入测试**
+
+  在密码更新、版本递增、Session 撤销、token 消费、operation 完成前分别抛错；每次断言所有表保持事务前状态。响应丢失后以同一 recovery token 查询 `completed`。
+
+- [ ] **Step 4：实现 Refresh Cookie 与 CSRF**
+
+  Refresh Cookie 为 host-only、Secure、HttpOnly、SameSite=Lax；写 Cookie 接口校验允许 Origin 和双提交 CSRF token。Refresh 原值不进日志/响应 JSON，Access Token 只在 JSON 成功响应返回。
+
+- [ ] **Step 5：实现每请求版本校验**
+
+  `AuthGuard` 验证 RS256/issuer/audience/exp 后查询 Session 与 `account_security`；token `session_version` 不等于数据库值立即返回 `SESSION_REVOKED`。
+
+- [ ] **Step 6：实现单事务重置**
+
+  使用 `select ... for update` 锁 operation/token/user；完成密码、版本、Session 和终态更新。状态查询必须同时验证 operation ID 与同一 recovery token 哈希，只返回 `pending/completed/failed`。
+
+- [ ] **Step 7：验证并提交**
+
+  运行 `npm --prefix server test`、typecheck、build 和隔离数据库集成测试；提交 `feat: add rotating sessions and atomic password reset`。
+
+**回滚：** 密码重置入口可独立关闭；不得回滚为旧令牌自然过期方案。
+
+### Task 5：新架构认证安全硬门禁
+
+**依赖：** Task 3、Task 4。
 
 **文件：**
-- 新建：`supabase/functions/save-recipe/index.ts`
+- 新建：`scripts/auth-gateway/capability-gate.mjs`
+- 新建：`scripts/auth-gateway/capability-gate.test.mjs`
+- 新建：`docs/technical-spikes/2026-08-13-nestjs-auth-gateway-capability-gate.md`
+- 修改：`package.json`、`docs/development-process/06_implementation_log.md`
+
+**产出接口：** `npm run probe:auth-gateway`；结论仅允许 `GO` 或 `NO-GO`。
+
+- [ ] **Step 1：写门禁判定红灯测试**
+
+  `evaluateGate(evidence)` 仅当七项证据全为 `pass` 返回 `GO`；缺失、跳过、`unknown` 或 `fail` 均返回 `NO-GO`。
+
+- [ ] **Step 2：运行红灯测试并实现最小判定器**
+
+  执行 `node --test scripts/auth-gateway/capability-gate.test.mjs`；先确认模块缺失失败，再实现纯判定函数并通过。
+
+- [ ] **Step 3：执行双设备与故障注入**
+
+  在隔离 staging 创建两个浏览器/HTTP Session，执行密码重置、旧 Access/Refresh 重放、响应丢失终态查询、当前设备退出和 Refresh family 重放。不得打印邮箱、密码、Cookie 或 token。
+
+- [ ] **Step 4：执行并发限流与连接池隔离**
+
+  并发越过 30/5min IP 与 3/hour 邮箱阈值，断言精确 `RATE_LIMITED`；并发交替两个用户和无用户事务，断言 RLS 上下文无泄漏。
+
+- [ ] **Step 5：生成可审计报告**
+
+  记录 commit、Node/NestJS/PostgreSQL 版本、Render/Supabase staging、脱敏测试标识、故障点、期望/实际结果和时间。任一失败写 `NO-GO` 并停止。
+
+- [ ] **Step 6：验证并提交**
+
+  执行 `npm run probe:auth-gateway`、探针单元测试、服务端全量测试。仅报告为 `GO` 才提交 `test: verify NestJS auth gateway capability gate` 并继续 Task 6；`NO-GO` 提交证据后返回 Task 20。
+
+**回滚：** 探针只使用隔离账户和 staging；清除原始 token，保留脱敏报告。
+
+### Task 6：私人数据 schema、事务用户上下文与 RLS
+
+**依赖：** Task 5 = `GO`。
+
+**文件：**
+- 新建：`supabase/migrations/202608130104_private_recipes.sql`
+- 新建：`supabase/migrations/202608130105_recipe_imports.sql`
+- 新建：`supabase/migrations/202608130106_private_data_rls.sql`
+- 新建：`supabase/tests/private_recipes_rls.test.sql`、`supabase/tests/import_idempotency.test.sql`
+- 修改：`server/src/database/database.service.ts`
+- 新建：`server/src/database/user-transaction.spec.ts`
+
+**产出接口：** `private_recipes`、`recipe_import_batches`、`recipe_import_items`；`withUserTransaction<T>(userId, work)`。
+
+- [ ] **Step 1：写 RLS/约束红灯测试**
+
+  覆盖缺失上下文、非法 UUID、本人、其他账户、已知他人 ID、旧 `session_version`、连接复用和运行时角色直接查询。写并发唯一性测试验证保存与导入最多一条。
+
+- [ ] **Step 2：运行红灯测试**
+
+  对隔离数据库运行 SQL 与 `user-transaction.spec.ts`，预期表/策略未定义。
+
+- [ ] **Step 3：建立私人数据与导入 schema**
+
+  配方 JSONB 有结构/大小上限；创建 `(owner_id, save_intent_id)` 和 `(owner_id, local_record_id)` 部分唯一索引；导入批次/项目有状态、计数、租约和 payload 回收字段。
+
+- [ ] **Step 4：实现强制 RLS 与用户事务**
+
+  私人表 `enable row level security` 且 `force row level security`。`withUserTransaction` 只接受 Guard 验证后的 UUID，在同一事务执行：
+
+  ```ts
+  await client.query("select set_config('app.user_id', $1, true)", [userId]);
+  ```
+
+  策略读取 `nullif(current_setting('app.user_id', true), '')::uuid`；缺失时拒绝。
+
+- [ ] **Step 5：验证连接池隔离**
+
+  使用 pool size 2 并发交替至少 100 次两个用户与匿名事务；任何跨账户行或上下文残留即失败。
+
+- [ ] **Step 6：验证并提交**
+
+  运行数据库、服务端全量测试、typecheck/build；提交 `feat: add private data schema and RLS`。
+
+**回滚：** 迁移扩展式新增；不删除成功数据或降低 RLS。
+
+### Task 7：前端 API、认证状态与受保护动作
+
+**依赖：** Task 2、Task 5 = `GO`、Task 6。
+
+**文件：**
+- 修改：`package.json`、`src/main.tsx`、`src/routes/AppRouter.tsx`、`src/routes/paths.ts`
+- 新建：`src/app/AppProviders.tsx`、`src/app/AppProviders.test.tsx`
+- 新建：`src/lib/api/apiClient.ts`、`src/lib/api/apiClient.test.ts`
+- 新建：`src/services/api/types.ts`、`src/services/auth/authService.ts`、`src/services/auth/authService.test.ts`
+- 新建：`src/services/auth/sessionStore.ts`、`src/services/auth/sessionStore.test.ts`
+- 新建：`src/routes/RequireVerifiedSession.tsx`、`src/routes/authFragment.ts`、对应测试
+
+**产出接口：** `apiRequest<T>()`；`register/login/refreshSession/logoutCurrentDevice/requestPasswordRecovery/resetPassword/getResetStatus`；`useSessionStore`。
+
+- [ ] **Step 1：写 API 与会话红灯测试**
+
+  覆盖 `credentials: "include"`、Bearer header、200ms pending 回调、10 秒 Abort、错误码映射、GET 两次重试/写请求零自动重试、Access Token 只在内存。
+
+- [ ] **Step 2：写恢复与 fragment 红灯测试**
+
+  应用启动 refresh 期间受保护页面显示加载；fragment 在首个同步步骤读取并 `replaceState` 清除，不写日志/localStorage；主动退出清除 `PendingAction`，自然过期登录保留有效动作。
+
+- [ ] **Step 3：运行红灯测试**
+
+  执行相关 Vitest，预期模块不存在。
+
+- [ ] **Step 4：实现 Query/Session Provider**
+
+  QueryClient 默认 query 最多重试两次，mutation 不自动重试。`useSessionStore` 不使用 persist；刷新成功只保存 `AuthSession` 内存值。
+
+- [ ] **Step 5：实现 API 与保护路由**
+
+  页面不直接 `fetch`；全部经 `apiRequest` 和 auth service。401/`SESSION_REVOKED` 清内存 Session、保留合规 PendingAction 并跳登录；公开核心链路不挂保护。
+
+- [ ] **Step 6：验证并提交**
+
+  运行前端全量测试、typecheck、Pages build；提交 `feat: connect frontend auth gateway services`。
+
+**回滚：** 云端开关关闭时不启动认证恢复，公开 v0.1.0 链路保持可用。
+
+### Task 8：幂等配方保存与只读查询 API
+
+**依赖：** Task 6、Task 7。
+
+**文件：**
+- 新建：`server/src/recipes/*`、`server/test/recipes.e2e-spec.ts`
 - 新建：`src/services/recipes/types.ts`、`src/services/recipes/recipeRepository.ts`
-- 新建：`src/services/recipes/supabaseRecipeRepository.ts`、`src/services/recipes/supabaseRecipeRepository.test.ts`
+- 新建：`src/services/recipes/httpRecipeRepository.ts`、对应测试
 - 新建：`src/queries/recipeKeys.ts`、`src/queries/useRecipes.ts`、`src/queries/useSaveRecipe.ts`
-- 修改：`src/pages/PreviewRecipePage.tsx`、`src/pages/RecipeDetailPage.tsx`
-- 新建/修改：对应页面测试
+- 修改：`src/pages/PreviewRecipePage.tsx`、`src/pages/RecipeDetailPage.tsx`、对应测试
 
-**产出接口：** `saveRecipe({ draft, saveIntentId })`、`listRecipes(cursor?)`、`getRecipe(id)`；query keys `recipeKeys.all/list/detail`。
+**产出接口：** `POST /api/v1/recipes`、`GET /api/v1/recipes`、`GET /api/v1/recipes/{id}`；`saveRecipe`、`listRecipes`、`getRecipe`；`recipeKeys`。
 
-- [ ] 写失败测试覆盖重复点击、响应丢失后原键重试、同键并发、内容编辑生成新键、其他账户已知 ID、超时保留草稿。
-- [ ] 运行 Service、Query 和页面测试，确认红灯。
-- [ ] Edge Function 从 JWT 获取 owner，校验字段并以唯一约束原子插入或返回既有记录；实施每用户每分钟 20 次的服务端限流，返回通用 `RATE_LIMITED` 与 `retryAfter`；错误响应不得带 SQL、堆栈或正文。
-- [ ] 用 TanStack Query 接线列表、详情和保存；保存成功更新列表顶部，失败/超时保留 `draftId` 与 `saveIntentId`。
-- [ ] 私人详情保持只读，不添加编辑、删除、收藏、分享或发布。
-- [ ] 运行 `npm test`、`npm run typecheck`、`npm run build:pages` 和保存/RLS 集成测试；提交 `feat: save and read private recipes`。
+- [ ] **Step 1：写 API 红灯测试**
 
-**回滚：** 关闭保存入口并保留本地草稿与幂等键；不得删除已成功保存的云端记录。
+  覆盖重复点击、响应丢失原键重试、同键并发、其他账户已知 ID、无上下文 RLS、字段/JSONB 上限和每用户每分钟 20 次限流。
 
-### Task 8：本地配方主动导入、判重与恢复
+- [ ] **Step 2：写前端 Repository/页面红灯测试**
 
-**依赖：** Task 3、Task 4、Task 5、Task 7。
+  未登录保存建立 `PendingAction`；成功清草稿并打开详情；超时保留草稿与同一 `saveIntentId`；详情 `NOT_FOUND` 不区分无权/不存在。
+
+- [ ] **Step 3：实现服务端配方模块**
+
+  owner 只来自 Guard；写入经 `withUserTransaction`，使用 `insert ... on conflict`/查询返回同一记录。列表按 `created_at desc, id desc` 有限分页；不创建 PATCH/DELETE。
+
+- [ ] **Step 4：实现 TanStack Query 接线**
+
+  `recipeKeys = { all, list(params), detail(id) }`；保存成功更新 detail 并失效 list，不能把云端列表复制进 Zustand。
+
+- [ ] **Step 5：验证并提交**
+
+  运行前后端/数据库测试、typecheck、build；提交 `feat: add idempotent private recipe API`。
+
+**回滚：** 关闭保存入口，不删除已成功保存的记录。
+
+### Task 9：本地配方主动导入、判重与恢复
+
+**依赖：** Task 2、Task 6、Task 8。
 
 **文件：**
-- 新建：`supabase/functions/import-recipes/index.ts`
-- 新建：`supabase/functions/get-import-batch/index.ts`
-- 新建：`supabase/functions/retry-recipe-import/index.ts`
-- 新建：`src/services/imports/types.ts`、`src/services/imports/importRepository.ts`
-- 新建：`src/services/imports/supabaseImportRepository.ts`、`src/services/imports/supabaseImportRepository.test.ts`
+- 新建：`server/src/imports/*`、`server/test/imports.e2e-spec.ts`
+- 新建：`src/services/imports/types.ts`、`src/services/imports/importService.ts`
+- 新建：`src/services/imports/httpImportService.ts`、对应测试
 - 新建：`src/queries/importKeys.ts`、`src/queries/useRecipeImport.ts`
-- 新建：`src/components/imports/LocalRecipeImportDialog.tsx`、`src/components/imports/LocalRecipeImportDialog.test.tsx`
+- 新建：`src/components/imports/ImportPromptSheet.tsx`、`ImportProgressNote.tsx`、对应测试
 
-**产出接口：** `startOrResumeImport(clientBatchId, items)`、`getImportBatch(clientBatchId)`、`retryFailedItems(clientBatchId, localRecordIds)`。
+**产出接口：** `POST /api/v1/recipe-imports`、`GET /api/v1/recipe-imports/{clientBatchId}`、`POST /api/v1/recipe-imports/{clientBatchId}/retry`。
 
-- [ ] 写失败测试覆盖确认前零网络正文、稍后处理、同账户跳过、不同账户分别导入、部分失败、只重试失败项、响应丢失、pending/processing 租约过期和页面刷新恢复。
-- [ ] 运行导入 Service、组件和数据库测试，确认红灯。
-- [ ] 服务端同一事务建立批次与项目；每用户同时一批、每批最多 100 条；原子领取租约，完成写入必须匹配租约令牌。
-- [ ] 查询恢复流程把超宽限 pending 和过期 processing 原子改为 `failed/INTERRUPTED`；成功/跳过后清空 payload，失败项保留至恢复期。
-- [ ] 对话框显示总数、默认私有、确认后上传、本地仍保留；结果始终分别显示成功/跳过/失败数。
-- [ ] 运行全量测试、类型检查、构建和导入集成测试；提交 `feat: add consent-based local recipe import`。
+- [ ] **Step 1：写隐私与判重红灯测试**
 
-**回滚：** 暂停导入写入口，保留批次、成功记录、本地记录和失败项；恢复后沿用原 `clientBatchId`。
+  登录检测阶段网络正文上传次数必须为 0；只有“立即导入”发送正文。覆盖同账户重复、本账户不同 ID、不同账户相同 ID、单批 101 条拒绝。
 
-### Task 9：账户索引签与完整认证页面
+- [ ] **Step 2：写租约/部分失败红灯测试**
 
-**依赖：** Task 5、Task 6、Task 8。
+  覆盖批次重放、处理租约过期转 `failed/INTERRUPTED`、成功/跳过清 payload、只重试失败项、计数总和等于 total。
+
+- [ ] **Step 3：实现导入事务与恢复**
+
+  相同 `clientBatchId` 返回已有批次；建立项目后原子领取有限租约，写结果时匹配 lease token。查询批次先回收过期租约，再返回失败 ID。
+
+- [ ] **Step 4：实现前端明确选择流程**
+
+  认证成功后显示待导入数量；“稍后处理”立即恢复原任务；导入中显示计数，可离开后再查询。无论结果都不删除 `localLegacyRecipes`。
+
+- [ ] **Step 5：验证并提交**
+
+  运行前后端/数据库测试、typecheck/build；提交 `feat: add explicit legacy recipe import`。
+
+**回滚：** 关闭导入入口；保留本地记录、批次和成功云端记录。
+
+### Task 10：账户索引签与完整认证页面
+
+**依赖：** Task 7、Task 9。
 
 **文件：**
-- 新建：`src/components/account/AccountIndexTab.tsx`、`src/components/account/AccountIndexTab.test.tsx`
-- 新建：`src/pages/auth/CheckEmailPage.tsx`、`VerifyEmailPage.tsx`、`ForgotPasswordPage.tsx`
-- 新建：`src/pages/auth/CheckResetEmailPage.tsx`、`ResetPasswordPage.tsx`、`PasswordResetResultPage.tsx`
+- 修改：`src/components/AppShell.tsx`、`src/routes/AppRouter.tsx`、`src/styles/global.css`
 - 修改：`src/pages/LoginPage.tsx`、`src/pages/RegisterPage.tsx`
-- 修改：`src/components/AppShell.tsx`、`src/routes/paths.ts`、`src/routes/AppRouter.tsx`、`src/styles/global.css`
-- 新建/修改：每个认证页面及路由测试
+- 新建：`src/components/account/AccountIndexTab.tsx`、`AccountMenuSheet.tsx`、对应测试
+- 新建：`src/pages/auth/CheckEmailPage.tsx`、`VerifyEmailPage.tsx`
+- 新建：`src/pages/auth/ForgotPasswordPage.tsx`、`ResetPasswordPage.tsx`、对应测试
 
-**产出行为：** 注册后进入查收邮件；验证/重置 fragment 回调；登录后先处理主动导入，再恢复原任务；账户菜单仅含邮箱、私人笔记本、退出。
+**产出页面：** 注册、查收邮件、验证结果、登录、忘记密码、重置密码；账户索引签菜单。
 
-- [ ] 写失败测试覆盖全部页面状态、原任务文案、通用账户反馈、链接过期/重复使用、重发限流和键盘菜单焦点恢复。
-- [ ] 运行页面与组件测试，确认红灯。
-- [ ] 实现右侧书页索引签，触控区域至少 `44 x 44px`；点击外部、Escape 和菜单选择均关闭，关闭后焦点回触发控件。
-- [ ] 实现注册/验证/登录/找回/重置章节；密码至少 8 字符，允许粘贴和密码管理器填充，不添加无依据复杂度规则；回调入口不得加载第三方脚本；隐私说明如实限定邮箱用途并说明 v0.2.0 暂不提供账户注销或数据导出。
-- [ ] 登录后编排顺序固定为“会话验证 -> 主动导入/稍后 -> consume PendingAction”；主动退出清除待恢复动作。
-- [ ] 当业务 localStorage 或 Supabase 会话存储不可用时，仍允许当前页面内登录、保存与读取，并在用户制作或保存前提示草稿和会话无法跨刷新恢复，不得声称已持久化。
-- [ ] 在 320px、375px、430px、桌面和 200% 缩放检查无水平溢出、菜单不遮挡标题/主操作、键盘弹出后错误可见。
-- [ ] 运行全量测试、类型检查、Pages 构建；提交 `feat: add notebook-style account flows`。
+- [ ] **Step 1：写页面状态红灯测试**
 
-**回滚：** 云端开关关闭时隐藏账户签和认证路由入口，公开链路不受影响。
+  每页覆盖 idle、200ms pending、success、validation、通用失败、10 秒超时和重复提交保护；注册/找回不暴露邮箱存在性。
 
-### Task 10：云端私人笔记本状态与跨设备读取
+- [ ] **Step 2：写账户入口与焦点红灯测试**
 
-**依赖：** Task 7、Task 8、Task 9。
+  游客显示“登录/注册”，已登录显示“私人笔记本/退出”；索引签使用 button、`aria-expanded`，菜单打开移入焦点、Escape 关闭并归还焦点。
+
+- [ ] **Step 3：实现页面与原任务回跳**
+
+  注册成功去查收邮件；验证成功去登录；登录成功按“导入选择 -> PendingAction”顺序恢复；重置成功清 Session 并要求重新登录。
+
+- [ ] **Step 4：实现沉浸式样式**
+
+  复用纸张、墨色、索引签和既有控件；手机端不增加顶栏/底栏，不嵌套卡片，不让账户入口覆盖正文。最长中文/邮箱错误在 320px 至桌面宽度不溢出。
+
+- [ ] **Step 5：验证并提交**
+
+  运行页面/布局测试、typecheck、Pages build；用 Playwright 截图 394x932、698x706 和桌面宽度检查无重叠；提交 `feat: add notebook account and auth chapters`。
+
+**回滚：** 云端开关关闭时隐藏账户索引签，保留原公开书页。
+
+### Task 11：云端私人笔记本状态与跨设备读取
+
+**依赖：** Task 8、Task 9、Task 10。
 
 **文件：**
-- 修改：`src/pages/NotebookPage.tsx`、`src/pages/RecipeDetailPage.tsx`
-- 新建：`src/pages/NotebookPage.test.tsx` 或扩展现有同名测试
-- 修改：`src/pages/RecipeDetailPage.test.tsx`、`src/styles/global.css`
-- 新建：`src/components/imports/DeferredImportNote.tsx`、`src/components/imports/DeferredImportNote.test.tsx`
+- 修改：`src/pages/NotebookPage.tsx`、`src/pages/RecipeDetailPage.tsx`、对应测试
+- 修改：`src/styles/global.css`
+- 新建：`src/components/notebook/NotebookLoadingPage.tsx`、`NotebookEmptyPage.tsx`、`NotebookErrorPage.tsx`
 
-**产出行为：** 云端倒序列表、加载骨架、真实空、失败、超时、会话失效、前台刷新、稍后导入入口和只读详情。
+**产出：** 云端列表/详情、加载/空/失败/超时/会话失效状态、前台刷新和跨设备读取。
 
-- [ ] 写失败测试，证明加载时不闪空状态，失败不显示“没有配方”，超时有继续等待/重新加载，会话失效可登录回原位置。
-- [ ] 写双客户端测试，设备 A 保存后设备 B 刷新可在列表顶部读取并打开详情。
-- [ ] 用 TanStack Query 替换 `savedRecipes` 页面读取；进入页面和 `visibilitychange` 回到前台时刷新。
-- [ ] 添加低干扰“导入本地配方”便笺，不遮挡条目，不演变为管理工具栏；本地记录始终保留。
-- [ ] 保持现有整屏书页、索引纸条和只读详情视觉，不添加搜索、筛选、编辑或删除。
-- [ ] 运行全量测试、类型检查、Pages 构建；提交 `feat: connect cloud private notebook`。
+- [ ] **Step 1：写状态语义红灯测试**
 
-**回滚：** 关闭云端列表入口并保留本地数据；不得把云端失败误降级成空笔记本。
+  认证恢复未完成不显示空页；真实空才显示空；网络失败可重试；超时保留页面；会话失效去登录并保存 `openNotebook/openRecipe`；无权和不存在统一安全页。
 
-### Task 11：端到端、安全、可访问性与范围回归
+- [ ] **Step 2：写跨设备与排序红灯测试**
 
-**依赖：** Task 3 至 Task 10。
+  设备 A 保存后设备 B 重新进入/回前台可见；列表按 `createdAt desc, id desc`；详情为只读且无编辑/删除入口。
+
+- [ ] **Step 3：实现查询驱动页面**
+
+  页面只读 TanStack Query；窗口从 hidden 转 visible 时失效 notebook list。导入完成只失效列表，不复制云端数据到 store。
+
+- [ ] **Step 4：验证视觉与可访问性**
+
+  保持“整屏即书页”，状态文案使用 live region，重试按钮可键盘操作；窄屏、200% 缩放和减少动态效果无内容遮挡。
+
+- [ ] **Step 5：验证并提交**
+
+  运行前端全量测试、typecheck、Pages build 和关键截图；提交 `feat: connect cloud notebook states`。
+
+**回滚：** 关闭云端入口后回到 v0.1.0 本地体验，不删除本地或云端数据。
+
+### Task 12：端到端、安全、可访问性与范围回归
+
+**依赖：** Task 2 至 Task 11。
 
 **文件：**
 - 新建：`playwright.config.ts`
-- 新建：`e2e/auth.spec.ts`、`e2e/password-reset.spec.ts`、`e2e/save-and-sync.spec.ts`
-- 新建：`e2e/local-import.spec.ts`、`e2e/accessibility.spec.ts`、`e2e/v01-regression.spec.ts`
-- 新建：`e2e/helpers/testUsers.ts`、`e2e/helpers/mailbox.ts`、`e2e/helpers/storage.ts`
-- 修改：`package.json`
+- 新建：`e2e/auth.spec.ts`、`e2e/password-reset.spec.ts`、`e2e/save-and-notebook.spec.ts`
+- 新建：`e2e/import.spec.ts`、`e2e/security.spec.ts`、`e2e/accessibility.spec.ts`、`e2e/scope-regression.spec.ts`
+- 修改：`docs/development-process/06_implementation_log.md`
 
-**产出命令：** `npm run test:e2e`、`npm run test:e2e:staging`。
+**产出：** 可重复的真实浏览器验收套件与脱敏证据。
 
-- [ ] 先建立失败 E2E，覆盖注册/验证、登录/退出、密码重置、游客保存回跳、双账户越权、跨设备同步、主动导入、部分失败重试。
-- [ ] 增加邮件链接在新标签、关闭原页面、localStorage 不可用三种场景；验证 fragment 清除且日志/请求不含 token。
-- [ ] 增加键盘、程序化标签、焦点、实时区域、非颜色反馈、WCAG AA 对比度、44px 目标、200% 缩放、减少动态效果、320px/430px/桌面视口检查。
-- [ ] 在当前及前一个主要版本的 Chrome、Edge、Firefox、Safari 做兼容性矩阵；以节流网络采集账户、保存、读取和导入耗时，验证 200ms 反馈、正常网络 3 秒目标与 10 秒可恢复超时。
-- [ ] 增加 v0.1.0 “今日推荐 -> 详情 -> 实验台 -> 预览”回归和范围断言，确认不存在社区、发布、收藏、编辑/删除、搜索/筛选或经典配方库入口。
-- [ ] 运行 `npm test`、`npm run typecheck`、`npm run build:pages`、`npm run test:e2e:staging`；零失败才提交 `test: cover v0.2.0 cloud notebook journeys`。
+- [ ] **Step 1：建立隔离 E2E fixture**
 
-**回滚：** E2E 账户和数据使用专用前缀并在测试后清理；禁止指向 production 执行破坏性夹具。
+  每次运行生成两个随机测试账户，通过 MailPort 测试收件箱读取验证/恢复链接；cleanup 只删除带本次 run ID 的测试数据。失败附件过滤 URL fragment、Cookie、Authorization 和表单密码。
 
-### Task 12：CI、部署门禁、观测与发布准备
+- [ ] **Step 2：实现核心 E2E**
 
-**依赖：** Task 11 全绿。
+  覆盖注册验证、登录恢复、游客保存回跳、双设备跨读、当前设备退出、密码重置全旧会话失效、丢响应终态查询、本地主动导入和失败项重试。
+
+- [ ] **Step 3：实现安全回归**
+
+  覆盖跨账户已知 ID、伪造 owner、缺失数据库上下文、非法 JWT、Refresh 重放、CSRF/CORS、fragment 清除、日志/trace 无秘密和精确限流。
+
+- [ ] **Step 4：实现可访问性与性能门禁**
+
+  键盘完整操作、焦点归还、live region、200% 缩放、394x932/698x706/桌面、reduced motion；健康网络下认证后笔记本首屏 P95 目标 3 秒，并记录环境。
+
+- [ ] **Step 5：实现范围回归**
+
+  断言没有社区、摇一摇、发布、收藏、编辑/删除、搜索/筛选、经典鸡尾酒库、传统手机顶栏/底栏；游客原核心链路继续通过。
+
+- [ ] **Step 6：验证并提交**
+
+  执行前后端全量测试、数据库测试、`npx playwright test`、typecheck 和 builds；提交 `test: cover v0.2.0 account and notebook flows`。
+
+**回滚：** 测试只操作隔离环境，禁止对 production 执行清理 fixture。
+
+### Task 13：CI、部署门禁、观测与发布准备
+
+**依赖：** Task 12 全绿。
 
 **文件：**
 - 修改：`.github/workflows/deploy-pages.yml`
-- 新建：`.github/workflows/ci.yml`、`.github/workflows/supabase-staging.yml`
-- 修改：`scripts/deployment-config.check.mjs`、`package.json`
-- 新建：`scripts/supabase/staging-smoke.mjs`
-- 新建：`docs/deployment/v0.2.0-supabase-runbook.md`
-- 修改：`docs/development-process/06_implementation_log.md`（若阶段 06 尚未创建则新建）
+- 新建：`.github/workflows/verify-api.yml`
+- 新建：`scripts/deployment/check-v020-config.mjs`、对应测试
+- 新建：`scripts/deployment/smoke-v020.mjs`
+- 修改：`render.yaml`、`README.md`
+- 修改：`docs/development-process/06_implementation_log.md`
 
-**产出门禁：** PR 执行单元测试、类型检查、Pages 构建、环境配置检查和适合 CI 的 Supabase 集成测试；production 部署采用受保护环境人工确认，前端云端开关默认关闭。
+**产出：** 前后端 CI、staging/production 发布门禁、健康检查、冒烟与回滚说明；不在本任务直接发布 v0.2.0。
 
-- [ ] 写配置检查红灯测试，覆盖缺失公开变量、Pages basename/404 fallback、回调白名单和服务端密钥误入前端环境。
-- [ ] 配置 staging 与 production 独立 Supabase 项目；记录 Site URL、精确回调 URL、邮件模板、CAPTCHA、限流、备份与恢复步骤，禁止域名通配。
-- [ ] CI 中隔离普通 Pages 构建和受保护管理密钥；production 数据库迁移需要人工确认。
-- [ ] staging 冒烟覆盖注册、验证、重置、保存、导入、跨账户 RLS、旧会话失效、日志脱敏和请求指标；验证认证限流、每用户每分钟 20 次保存限流、每用户同时 1 个/最多 100 条导入批次及 `retryAfter`。
-- [ ] 建立并核验脱敏观测：认证成功/失败/限流，保存 P50/P95/超时/幂等命中，导入成功/跳过/失败/恢复，RLS 拒绝、`SESSION_REVOKED` 与 Edge Function 5xx；告警不得携带邮箱全文、令牌、本地记录 ID 原值或配方正文。
-- [ ] 按“数据库扩展迁移 -> Edge Functions -> 关闭状态前端 -> production 冒烟 -> 开启功能”执行发布准备；任何门禁失败保持功能开关关闭。
-- [ ] 运行 `npm test`、`npm run typecheck`、`npm run build:pages`、`npm run test:e2e:staging`、`npm run smoke:staging`；提交 `ci: add v0.2.0 release gates`。
+- [ ] **Step 1：写部署配置红灯测试**
 
-**回滚：** 前端回退上一稳定构建并关闭云端开关；写函数故障时暂停入口；不删除已保存/导入记录；使用原幂等键恢复。
+  校验 Pages custom domain、API base URL、同站子域、HTTPS、允许 Origin、Cookie 配置、数据库/JWT/Resend Secrets 名称、健康检查、云端开关默认关闭；禁止通配 CORS、`VITE_*` 服务密钥和 Supabase Auth URL。
 
-## 验证矩阵
+- [ ] **Step 2：拆分 CI**
 
-| 需求编号 | 实施任务 | 主要验收证据 |
+  Pages job 执行前端 test/typecheck/build；API job 执行 `npm ci --prefix server`、test/typecheck/build 和迁移静态检查。需要真实 Secrets 的 staging 集成测试只在受保护环境运行。
+
+- [ ] **Step 3：配置部署顺序与功能开关**
+
+  固定 `staging DB -> staging API -> staging web -> production DB -> production API -> production web -> smoke -> enable flag`。任何一步失败停止，不把浏览器切到直连数据库。
+
+- [ ] **Step 4：配置最小观测与脱敏**
+
+  指标包含认证成功/失败/限流、Refresh 重放、密码重置终态、保存/导入延迟、RLS 拒绝、DB pool 与 API 5xx；日志抽样测试拒绝邮箱全文、token、Cookie、密码和配方正文。
+
+- [ ] **Step 5：执行 staging 与 production-ready 冒烟**
+
+  staging 真实运行注册到跨设备笔记本全链路。production 只在自定义域、数据库备份和回滚演练完成后运行只读健康/公开链路检查；账户功能仍保持关闭，等待发布任务。
+
+- [ ] **Step 6：验证并提交**
+
+  执行所有 test/typecheck/build、部署检查和 staging E2E；提交 `chore: prepare v0.2.0 deployment gates`。
+
+**回滚：** API 回滚上一镜像，Pages 回滚上一 artifact，数据库仅向前修复；功能开关关闭时保留 v0.1.0。
+
+## 需求追踪
+
+| 需求 | 实施任务 | 验证证据 |
 | --- | --- | --- |
-| AUTH-01 | Task 5、Task 9、Task 11 | 注册 Service/页面测试、真实邮件 E2E、通用账户反馈与重复提交保护 |
-| AUTH-02 | Task 1、Task 4、Task 5、Task 9、Task 11 | Hook/RLS 门禁、一次性验证链接、未验证账户拒绝与重发限流 |
-| AUTH-03 | Task 1、Task 5、Task 9、Task 11 | 会话恢复、单设备退出、多设备并行与受保护动作回跳 |
-| AUTH-04 | Task 1、Task 4、Task 6、Task 9、Task 11 | 失败关闭状态机、旧 Access/Refresh Token 失效与旧密码拒绝 |
-| FLOW-01 | Task 3、Task 5、Task 7、Task 9、Task 11 | 游客链路、草稿保留、24 小时 PendingAction 与保存/笔记本回跳 |
-| RECIPE-01 | Task 4、Task 7、Task 11 | 所有权、唯一约束、并发/丢响应幂等、10 秒超时恢复 |
-| RECIPE-02 | Task 4、Task 7、Task 10、Task 11 | 倒序列表、跨设备读取、状态区分和只读详情 |
-| IMPORT-01 | Task 3、Task 8、Task 9、Task 10、Task 11 | 待导入数量、明确同意前零正文上传、稍后入口与本地保留 |
-| IMPORT-02 | Task 4、Task 8、Task 11 | 账户 + 本地记录 ID 判重、逐项计数、部分失败和仅失败项重试 |
-| ERROR-01 | Task 2、Task 5、Task 7 至 Task 12 | 200ms 反馈、3 秒目标、10 秒超时、稳定错误码和恢复路径 |
+| AUTH-01 | Task 3、7、10、12 | 注册 API/页面、通用反馈、重复提交和真实邮件 E2E |
+| AUTH-02 | Task 3、7、10、12 | 一次性验证 token、未验证拒绝、重发限流与 fragment 清除 |
+| AUTH-03 | Task 4、5、7、10、12 | Session 轮换、多设备、当前设备退出、恢复与重放检测 |
+| AUTH-04 | Task 4、5、7、10、12 | 单事务重置、operation 终态、旧 Access/Refresh 立即失效 |
+| FLOW-01 | Task 2、7、8、10、12 | 游客链路、草稿、24 小时 PendingAction 和认证回跳 |
+| RECIPE-01 | Task 6、8、12 | 所有权、唯一约束、并发/丢响应幂等与超时恢复 |
+| RECIPE-02 | Task 6、8、11、12 | 倒序列表、跨设备读取、状态区分和只读详情 |
+| IMPORT-01 | Task 2、9、10、11、12 | 明确同意前零正文上传、稍后处理和本地保留 |
+| IMPORT-02 | Task 6、9、12 | 账户 + 本地记录 ID、逐项计数、部分失败和仅失败重试 |
+| ERROR-01 | Task 1、3 至 13 | 200ms 反馈、3 秒目标、10 秒超时、稳定错误码与恢复 |
 
-| 验收领域 | 自动化证据 | 手动/环境证据 |
+## 总体验证矩阵
+
+| 领域 | 自动化 | 人工/环境证据 |
 | --- | --- | --- |
-| 注册、验证、登录 | Vitest + `e2e/auth.spec.ts` | staging 真邮件、新标签、关闭原页 |
-| 密码重置与全局失效 | 状态机测试 + 双上下文 E2E | Task 1 契约证据与故障注入 |
-| 权限与隐私 | pgTAP/RLS 双账户测试 | staging 日志脱敏检查 |
-| 幂等保存 | 并发数据库测试 + save E2E | 丢失响应后原键重试 |
-| 跨设备笔记本 | Query/页面测试 + 双上下文 E2E | 两个实际浏览器复核 |
-| 主动导入 | DB、Service、组件与 E2E | 确认前网络面板无正文上传 |
-| 页面状态 | 页面组件测试 | 慢网、离线、10 秒超时 |
-| 可访问性 | 键盘/语义 E2E | 200% 缩放、窄屏、减少动态 |
-| v0.1.0 回归 | 现有测试 + `v01-regression.spec.ts` | 手机端整屏书页视觉复核 |
-| 部署 | 配置检查 + staging smoke | production 回调、Pages 深链与备份恢复 |
+| 注册与验证 | Nest API + 页面 + Playwright | Resend staging 投递和真实回调 |
+| 会话与退出 | 双 Session API/E2E | 前后台切换与 Cookie 检查 |
+| 密码重置 | 事务/故障注入 + 双设备 E2E | Task 5 `GO` 报告 |
+| 私人数据隔离 | SQL RLS + API 越权测试 | 连接池隔离探针 |
+| 保存幂等 | 并发/丢响应测试 | 网络中断恢复 |
+| 本地导入 | fixture + API + E2E | 用户明确确认与本地保留 |
+| 响应式/可访问性 | 页面测试 + Playwright | 394x932、698x706、桌面截图 |
+| 部署 | CI + config check + smoke | 自定义域、备份、回滚演练 |
 
-## 全局回滚原则
+## 每任务通用完成规则
 
-- 功能开关默认关闭，只有 production 冒烟成功后开启。
-- 数据库只做先新增、后切换、延后删除；v0.2.0 不执行破坏性清理。
-- 云端写入成功后不因前端或函数回滚而删除；恢复时沿用原幂等键。
-- 本地迁移保留 v0.1.0 备份，任何失败只隔离损坏记录，不清空整个状态。
-- 密码重置未知结果保持失败关闭，禁止人工跳过安全阶段。
-- 任一安全、RLS、旧会话失效或敏感日志门禁失败，云端功能不得发布。
+每个 Task 均须：
 
-## 任务级审阅与提交规则
+1. 先写可观察失败的测试并记录红灯原因。
+2. 只实现通过该任务验收所需的最小代码。
+3. 运行任务局部测试及受影响的全量 test/typecheck/build。
+4. 检查 `git diff --check`、秘密、日志字段、RLS/所有权、范围和无关文件。
+5. 更新 `docs/development-process/06_implementation_log.md`，记录命令、结果、偏离与回滚点。
+6. 独立提交；不得把多个任务压成一个不可审查提交。
 
-每个 Task 完成后按以下顺序执行：
+## 停止条件
 
-1. 查看 `git diff`，确认无用户临时文件、密钥、测试账户凭据或无关视觉改动。
-2. 运行该 Task 的定向测试，再运行 `npm test`、`npm run typecheck`；涉及前端构建时运行 `npm run build:pages`。
-3. 涉及 Supabase 时额外运行数据库/函数集成测试；涉及用户旅程时运行对应 Playwright 场景。
-4. 由独立审阅者先检查规格符合性，再检查代码质量、安全和测试缺口。
-5. 只提交该 Task 的文件。若验证失败，不提交、不进入下一 Task。
+立即停止并返回技术设计或计划阶段：
 
-## 已完成工作
+- Task 5 任一硬能力不是 `PASS`。
+- 密码重置无法在单事务内完成或旧 Access/Refresh Token 不能立即失效。
+- 数据库用户上下文在连接池请求间可能泄漏。
+- Render/Supabase PostgreSQL 组合无法满足事务、健康检查或可靠连接要求。
+- production 无法配置前端/API 同一可注册域，且账户入口会依赖第三方 Cookie。
+- 实现要求加入 Redis、对象存储、管理后台、社区或其他未签收范围。
+- 需要静默上传本地配方、删除本地记录或暴露账户存在性才能继续。
 
-- 将已签收技术设计拆为 12 个有序、可独立审阅的实施任务。
-- 将 Supabase 密码终态、全局撤销、Hook 与 RLS 联动设为首个 Go/No-Go 门禁。
-- 锁定跨任务接口、文件职责、TDD 步骤、验证命令、提交点和回滚边界。
-- 建立需求、安全、E2E、可访问性、部署和范围回归的追踪矩阵。
+## 计划级回滚
 
-## 决策
-
-- 先验证最危险且不可通过代码猜测补齐的认证契约，再投资云端实现。
-- 本地持久化迁移可独立准备，但不得绕过认证 `NO-GO` 合并发布。
-- 后端按 schema/RLS、认证、重置、保存、导入的依赖顺序推进；前端随后接入已稳定合约。
-- 测试沿用源码同目录 Vitest 惯例，新增 `supabase/tests` 和 `e2e` 承担跨系统验证。
-- 计划采用小步独立提交，不把 v0.2.0 合并为一次难以审阅的大改动。
+- 所有云端入口默认关闭；任何阶段可关闭开关回到 v0.1.0 公开链路。
+- 数据库只做扩展式迁移，不在 v0.2.0 发布窗口破坏性删除。
+- 保留 `wishtoday-flow-state-v1-backup`，不自动清理本地或云端成功记录。
+- API/邮件故障时暂停相应入口，不允许浏览器绕过网关直连数据库。
+- Task 5 `NO-GO` 时保留探针证据，停止后续实现并返回 Task 20。
 
 ## 交付物
 
-- `docs/development-process/05_implementation_plan.md`
+- 修订后的 `docs/development-process/05_implementation_plan.md`
 - 更新后的 `docs/development-process/00_process_index.md`
 
 ## 完成标准
 
-- [x] 任务顺序、依赖和硬性停止条件已定义。
-- [x] 每项任务的预期文件、接口、测试、验证命令、提交点和回滚已定义。
-- [x] P0 需求、非功能门槛、页面状态和范围回归均可追踪至任务。
-- [x] Supabase 未验证能力未被当作既成事实。
-- [x] v0.2.0 非目标和 v0.3.0 经典鸡尾酒配方库未回流。
-- [x] 用户已于 2026-08-13 书面签收本文档。
+- [x] 原 Supabase Auth `NO-GO` 与废止前提已记录。
+- [x] NestJS/PostgreSQL 文件结构、模块、接口与固定依赖已定义。
+- [x] 13 个任务的依赖、测试、提交和回滚边界已定义。
+- [x] 新架构认证安全 Go/No-Go 门禁已置于私人数据实现之前。
+- [x] AUTH-01 至 ERROR-01 均可追踪到任务和证据。
+- [x] 部署、自定义域、邮件、限流、RLS、观测和回滚已纳入计划。
+- [x] v0.2.0 非目标未回流。
+- [ ] 用户书面签收本次 Task 21 修订。
 
 ## 开放问题
 
-- Supabase staging/production 项目尚未创建；由 Task 1/12 建立或配置。
-- Supabase 是否满足密码更新幂等/契约终态与全局撤销仍未验证；Task 1 是硬性阻塞门禁。
-- 生产限流阈值、邮件送达和备份恢复能力需在 staging 校准，不得在计划阶段假定通过。
-- 当前 `main` 尚有领先远端的本地提交；进入实施前应确认推送与分支策略。
+计划不存在产品范围阻塞项。以下是执行阶段必须由证据关闭的环境项：
+
+- Render、Supabase PostgreSQL staging/production、Resend 和 production 自定义域尚未创建或配置。
+- Task 1 必须验证 Render 到 Supabase PostgreSQL 的 SSL、事务级 `set_config`、延迟和健康检查。
+- Task 1 的 Argon2id 基准必须在目标 Render 实例上固定参数，兼顾安全与登录延迟。
+- Task 5 必须取得新架构七项硬能力 `GO`，否则后续私人数据实现继续阻塞。
 
 ## 给下一角色的交接
 
-本文已由用户于 2026-08-13 书面签收。下一角色为实现工程师，进入阶段 06 并创建 `docs/development-process/06_implementation_log.md`。执行者必须先运行 Task 1；只有书面报告为 `GO` 才按顺序继续 Task 2 至 Task 12。每完成一个 Task 即更新实施日志、验证证据和偏离说明。
+本修订计划须先由用户书面签收。签收后下一角色为实现工程师，继续阶段 06，并在现有隔离分支按 Task 1 至 Task 13 顺序执行。首个实现任务是 **Task 1：NestJS、PostgreSQL 与部署工程基线**，不是继续原 Supabase Auth 探针。
+
+执行者每完成一个 Task 即更新实施日志、验证证据和偏离说明。Task 5 报告为 `GO` 前，不得开始 Task 6 或任何私人配方/导入实现。
