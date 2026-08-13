@@ -1,6 +1,6 @@
 # 00 WishToday 开发流程索引
 
-状态：Task 21 实施计划修订已完成，待用户签收
+状态：Task 21 实施计划修订已签收，可进入阶段 06
 负责角色：流程协调员
 日期：2026-08-13
 
@@ -17,17 +17,17 @@
 
 ## 范围
 
-本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。v0.2.0 首项 Supabase 认证能力硬门禁判定为 `NO-GO` 后，已停止后续云端实现并返回技术设计阶段。用户确认并签收方案 A，修订设计采用“最小化 NestJS 认证与私人数据网关 + Supabase PostgreSQL”；对应的 13 项修订实施计划已完成，当前等待用户签收。
+本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。v0.2.0 首项 Supabase 认证能力硬门禁判定为 `NO-GO` 后，已停止后续云端实现并返回技术设计阶段。用户确认并签收方案 A，修订设计采用“最小化 NestJS 认证与私人数据网关 + Supabase PostgreSQL”；对应的 13 项修订实施计划已完成签收，可进入阶段 06。
 
 ## 当前周期
 
 - 当前版本：v0.2.0
-- 已完成阶段：01 产品发现、02 需求规格、03 产品设计、04 技术设计方案 A 修订；原 05 实施计划因门禁结论失效，修订版待签收
-- 当前阶段：05 实施计划修订
-- 当前状态：Task 21 修订计划已完成，待用户签收；06 实现保持阻塞
-- 下一阶段：用户签收后进入 06 实现
-- 下一角色：当前为用户评审；签收后为实现工程师
-- 下一交付物：用户书面签收修订后的 `docs/development-process/05_implementation_plan.md`
+- 已完成阶段：01 产品发现、02 需求规格、03 产品设计、04 技术设计方案 A 修订、05 实施计划修订
+- 当前阶段：06 实现准备
+- 当前状态：Task 21 修订计划已签收；计划签收阻塞已解除
+- 下一阶段：06 实现
+- 下一角色：实现工程师
+- 下一交付物：Task 1 工程基线及更新后的 `docs/development-process/06_implementation_log.md`
 
 ## 已完成工作
 
@@ -59,6 +59,7 @@
 - 固定 NestJS 11 + Express、Node.js 22、原生 `pg` 8 显式事务、Argon2id、`jose` 6/RS256、Resend、Render Web Service 与 Supabase PostgreSQL 技术基线。
 - 将新架构认证安全验证设为 Task 5 硬门禁；密码重置原子性与故障回滚、operation 幂等、双设备旧 Token 立即失效、Refresh 轮换与重放、精确限流、RLS 连接池隔离七项必须全部 `PASS`。
 - 建立 AUTH-01 至 ERROR-01 的修订任务追踪，并纳入 CI、同站子域部署、观测、回滚和范围回归检查。
+- 用户已于 2026-08-13 书面签收 Task 21 修订实施计划。
 
 ## 阶段状态
 
@@ -69,8 +70,8 @@
 | 02 需求规格 | 需求分析师 | 可交接 | `docs/development-process/02_requirements_spec.md` |
 | 03 产品设计 | UX/UI 设计师 | 已签收，可交接 | `docs/development-process/03_design_spec.md` |
 | 04 技术设计 | 解决方案架构师 | 方案 A 修订已签收，可交接 | `docs/development-process/04_technical_design.md` |
-| 05 实施计划 | 工程计划员 | Task 21 修订已完成，待用户签收 | `docs/development-process/05_implementation_plan.md` |
-| 06 实现 | 实现工程师 | 修订计划签收前保持阻塞；后续 Task 6 受 Task 5 `GO` 门禁约束 | `docs/development-process/06_implementation_log.md` |
+| 05 实施计划 | 工程计划员 | Task 21 修订已签收，可交接 | `docs/development-process/05_implementation_plan.md` |
+| 06 实现 | 实现工程师 | 可开始 Task 1；Task 6 受 Task 5 `GO` 门禁约束 | `docs/development-process/06_implementation_log.md` |
 | 07 质量保证 | QA 工程师 | 未开始 | `docs/development-process/07_test_report.md` |
 | 08 代码审查 | 代码审查员 | 未开始 | `docs/development-process/08_review_report.md` |
 | 09 发布 | 发布工程师 | 未开始 | `docs/development-process/09_release_notes.md` |
@@ -142,14 +143,14 @@ v0.1.0 已于 2026-08-12 正式签收并发布。其核心链路为：
 - [x] 用户已于 2026-08-13 书面签收修订后的 `docs/development-process/04_technical_design.md`。
 - [x] v0.2.0 实施任务顺序、依赖、文件、接口、测试、回滚和 Go/No-Go 门禁已形成文档。
 - [x] Task 21 已按新架构将 v0.2.0 实施计划修订为 13 个任务，并完成需求追踪与范围回归检查设计。
-- [ ] 用户书面签收修订后的 `docs/development-process/05_implementation_plan.md`。
+- [x] 用户已于 2026-08-13 书面签收修订后的 `docs/development-process/05_implementation_plan.md`。
 
 ## 开放问题
 
 - 产品、需求和产品设计内容无阻塞项。
 - `docs/development-process/03_design_spec.md` 已由用户书面签收。
 - `docs/development-process/04_technical_design.md` 的方案 A 修订版已由用户书面签收。
-- `docs/development-process/05_implementation_plan.md` 修订版已完成，尚待用户书面签收；签收前不得进入实现。
+- `docs/development-process/05_implementation_plan.md` 修订版已由用户书面签收，可进入实现。
 - Task 22 已确认当前 Supabase 方案未同时取得五项硬能力的契约与 staging 观测证据；Admin 密码更新契约尤其缺少幂等键或可查询终态。
 - Render、Supabase PostgreSQL staging/production、Resend 与 production 自定义域尚未创建或配置，须在实施阶段用真实环境证据关闭。
 - Task 1 尚需验证 Render 到 Supabase PostgreSQL 的 SSL、事务级 `set_config`、健康检查和延迟，并在目标实例基准后固定 Argon2id 参数。
@@ -157,4 +158,4 @@ v0.1.0 已于 2026-08-12 正式签收并发布。其核心链路为：
 
 ## 给下一角色的交接
 
-Task 21 修订版已按签收的方案 A 写入，废止原计划中 Supabase Auth、Custom Access Token Hook、PostgREST 与 Edge Functions 的有效实施路径，并建立 NestJS/PostgreSQL 新架构 Task 5 门禁。当前交由用户评审并书面签收；签收后下一角色为实现工程师，从 **Task 1：NestJS、PostgreSQL 与部署工程基线** 开始。Task 5 得到 `GO` 前，不得开始 Task 6 或任何私人配方/导入实现。
+Task 21 修订版已按签收的方案 A 写入并于 2026-08-13 获得用户书面签收，原计划中 Supabase Auth、Custom Access Token Hook、PostgREST 与 Edge Functions 的有效实施路径已废止。下一角色为实现工程师，从 **Task 1：NestJS、PostgreSQL 与部署工程基线** 开始，并更新 `docs/development-process/06_implementation_log.md`。Task 5 得到 `GO` 前，不得开始 Task 6 或任何私人配方/导入实现。
