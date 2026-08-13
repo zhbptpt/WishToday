@@ -25,7 +25,7 @@ export class DatabaseModule {
 export function createDatabasePool(env: ServerEnv): Pool {
   const pool = new Pool({
     connectionString: env.databaseUrl,
-    ssl: { rejectUnauthorized: true },
+    ssl: { ca: env.databaseCaCert, rejectUnauthorized: true },
     max: 10,
     connectionTimeoutMillis: 5_000,
     query_timeout: 750,

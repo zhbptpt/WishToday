@@ -23,6 +23,8 @@ services:
         value: starter
       - key: DATABASE_URL
         sync: false
+      - key: DATABASE_CA_CERT_BASE64
+        sync: false
       - key: JWT_PRIVATE_KEY_BASE64
         sync: false
       - key: JWT_PUBLIC_KEY_BASE64

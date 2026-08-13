@@ -1,4 +1,5 @@
 import { generateKeyPairSync } from "node:crypto";
+import { rootCertificates } from "node:tls";
 
 import { describe, expect, it } from "vitest";
 
@@ -16,6 +17,7 @@ const validSecrets = {
   NODE_ENV: "test",
   DATABASE_URL: "postgresql://user:password@db.example.com:5432/wishtoday",
   DATABASE_SSL_MODE: "require",
+  DATABASE_CA_CERT_BASE64: encodePem(rootCertificates[0]!),
   JWT_PRIVATE_KEY_BASE64: Buffer.from(
     privateKey.export({ format: "pem", type: "pkcs8" }),
   ).toString("base64"),
@@ -31,6 +33,7 @@ const validSecrets = {
 describe("getServerEnv", () => {
   for (const name of [
     "DATABASE_URL",
+    "DATABASE_CA_CERT_BASE64",
     "JWT_PRIVATE_KEY_BASE64",
     "JWT_PUBLIC_KEY_BASE64",
     "JWT_KEY_ID",
@@ -80,6 +83,15 @@ describe("getServerEnv", () => {
     ).toThrow("DATABASE_URL");
   });
 
+  it("rejects invalid Base64 database CA certificates", () => {
+    expect(() =>
+      getServerEnv({
+        ...validSecrets,
+        DATABASE_CA_CERT_BASE64: encodePem("not a certificate"),
+      }),
+    ).toThrow("DATABASE_CA_CERT_BASE64");
+  });
+
   it("rejects RSA keys that do not form a pair", () => {
     const other = generateKeyPairSync("rsa", { modulusLength: 2048 });
 
@@ -120,6 +132,7 @@ describe("getServerEnv", () => {
 
     expect(env.allowedOrigins).toEqual(["https://staging.wishtoday.example"]);
     expect(env.databaseSslMode).toBe("require");
+    expect(env.databaseCaCert).toContain("BEGIN CERTIFICATE");
     expect(env.port).toBe(3000);
     expect(env.resendApiKey).toBeUndefined();
   });

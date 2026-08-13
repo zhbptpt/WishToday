@@ -73,3 +73,10 @@ npm --prefix server run benchmark:argon2
 ```
 
 将脱敏的平台、区域、连接类型、P95 与最终 Argon2id 参数追加到本日志。真实探针通过后，Task 1 才进入完整签收；Task 2 可按修订计划与该外部检查点并行开发。
+
+## 2026-08-14 staging 数据库预检更新
+
+- 已创建隔离的 Supabase 项目 `wishtoday-staging`，区域为 Singapore；数据库凭据和应用密钥仅保存在本机受限临时文件与平台 Secret 中。
+- Supabase 官方 Root CA 通过 `DATABASE_CA_CERT_BASE64` 注入，`pg` 始终使用 `rejectUnauthorized: true`；配置测试覆盖缺失和无效证书，未使用关闭证书验证的降级方案。
+- 本机对 Supabase Direct Connection 完成只读严格 TLS 预检，连接成功且 `pg_stat_ssl = true`。Shared Pooler 的后端会话不满足该断言，因此 Render 持久服务采用官方建议的 Direct Connection，并在 Render Singapore 上复验 IPv6 可达性。
+- Render `wishtoday-api-staging` Starter 尚未创建，真实事务上下文、数据库 P95、健康检查 P95 和 Argon2id 参数仍待 Render 实例验收；本段不把本机结果冒充 staging 结果。

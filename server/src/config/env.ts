@@ -2,6 +2,7 @@ import {
   createPrivateKey,
   createPublicKey,
   type KeyObject,
+  X509Certificate,
 } from "node:crypto";
 
 export type NodeEnvironment = "development" | "test" | "production";
@@ -10,6 +11,7 @@ export interface ServerEnv {
   nodeEnv: NodeEnvironment;
   databaseUrl: string;
   databaseSslMode: "require";
+  databaseCaCert: string;
   jwtPrivateKey: string;
   jwtPublicKey: string;
   jwtKeyId: string;
@@ -50,6 +52,22 @@ function decodePem(
     return { pem, key };
   } catch {
     throw new Error(`${name} must contain a valid RSA PEM key`);
+  }
+}
+
+function decodeCertificate(source: EnvSource): string {
+  const name = "DATABASE_CA_CERT_BASE64";
+  const encoded = requireValue(source, name);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) || encoded.length % 4 !== 0) {
+    throw new Error(`${name} must contain valid Base64 certificate data`);
+  }
+
+  const pem = Buffer.from(encoded, "base64").toString("utf8");
+  try {
+    new X509Certificate(pem);
+    return pem;
+  } catch {
+    throw new Error(`${name} must contain a valid PEM certificate`);
   }
 }
 
@@ -151,6 +169,7 @@ export function getServerEnv(source: EnvSource = process.env): ServerEnv {
     nodeEnv,
     databaseUrl,
     databaseSslMode: "require",
+    databaseCaCert: decodeCertificate(source),
     jwtPrivateKey: jwtPrivate.pem,
     jwtPublicKey: jwtPublic.pem,
     jwtKeyId: requireValue(source, "JWT_KEY_ID"),

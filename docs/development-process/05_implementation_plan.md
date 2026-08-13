@@ -228,7 +228,7 @@ Task 2 可在 Task 1 的外部服务探针期间开发；Task 6 及以后不得�
 
 - [ ] **Step 1：写环境与健康检查红灯测试**
 
-  前端测试缺失 `VITE_API_BASE_URL` 且云端开关开启时抛错；服务端测试缺失 `DATABASE_URL`、JWT key、token pepper 或允许 origin 时启动失败。E2E 断言：
+  前端测试缺失 `VITE_API_BASE_URL` 且云端开关开启时抛错；服务端测试缺失 `DATABASE_URL`、`DATABASE_CA_CERT_BASE64`、JWT key、token pepper 或允许 origin 时启动失败。E2E 断言：
 
   ```ts
   await request(app.getHttpServer())

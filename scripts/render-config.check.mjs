@@ -23,6 +23,7 @@ test("Render blueprint marks the staging environment for probe attestation", () 
 test("Render blueprint declares secrets without storing their values", () => {
   for (const name of [
     "DATABASE_URL",
+    "DATABASE_CA_CERT_BASE64",
     "JWT_PRIVATE_KEY_BASE64",
     "JWT_PUBLIC_KEY_BASE64",
     "JWT_KEY_ID",
