@@ -1,6 +1,6 @@
 # 04 WishToday v0.2.0 技术设计
 
-状态：修订设计待用户签收
+状态：修订设计已签收，可交接到实施计划修订阶段
 负责角色：解决方案架构师
 日期：2026-08-13
 
@@ -506,7 +506,7 @@ GitHub Actions 在现有前端测试和 Pages 构建上增加 server lint/typech
 - [x] API、错误、超时、重试、本地迁移、安全和隐私已定义。
 - [x] staging/production、测试、观测、上线门禁和回滚已定义。
 - [x] v0.2.0 非目标未回流。
-- [ ] 用户书面签收本次 Task 20 修订。
+- [x] 用户已于 2026-08-13 书面签收本次 Task 20 修订。
 
 ## 开放问题
 
@@ -520,7 +520,7 @@ GitHub Actions 在现有前端测试和 Pages 构建上增加 server lint/typech
 
 ## 给下一角色的交接
 
-本修订文档须先由用户书面签收。签收后返回工程计划员，修订 `docs/development-process/05_implementation_plan.md`，废止其中以 Supabase Auth、Custom Access Token Hook、PostgREST 和 Edge Functions 为前提的任务。
+本修订文档已由用户于 2026-08-13 书面签收。下一角色为工程计划员，修订 `docs/development-process/05_implementation_plan.md`，废止其中以 Supabase Auth、Custom Access Token Hook、PostgREST 和 Edge Functions 为前提的任务。
 
 新计划应先安排 NestJS/数据库最小脚手架、密码哈希与事务上下文探针，再安排认证核心、密码重置终态门禁、RLS、前端认证适配、云端保存、主动导入、页面状态、部署与 E2E。重新执行的新架构门禁必须得到 `GO` 后，才能继续私人数据业务实现。
 
