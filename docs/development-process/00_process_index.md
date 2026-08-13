@@ -8,6 +8,7 @@
 
 - `WishToday_PRD_产品需求文档_Codex.md`
 - `docs/development-process/01_project_brief.md`
+- `docs/development-process/02_requirements_spec.md`
 - `docs/development-process/10_maintenance_handoff.md`
 - `docs/releases/2026-08-12-wishtoday-mvp-v0.1.0-signoff.zh-CN.md`
 - `docs/releases/2026-08-12-wishtoday-mvp-v0.1.0-deployment.zh-CN.md`
@@ -15,16 +16,16 @@
 
 ## 范围
 
-本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。当前只记录 v0.2.0 产品发现结果并切换下一阶段，不编写详细需求、设计页面、选择技术方案或实现功能。
+本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。当前记录 v0.2.0 产品发现与需求规格结果并切换下一阶段，不设计页面、选择技术方案或实现功能。
 
 ## 当前周期
 
 - 当前版本：v0.2.0
-- 已完成阶段：01 产品发现
-- 当前状态：产品简报可交接
-- 下一阶段：02 需求规格
-- 下一角色：需求分析师
-- 下一交付物：`docs/development-process/02_requirements_spec.md`
+- 已完成阶段：01 产品发现、02 需求规格
+- 当前状态：需求规格可交接
+- 下一阶段：03 产品设计
+- 下一角色：UX/UI 设计师
+- 下一交付物：`docs/development-process/03_design_spec.md`
 
 ## 已完成工作
 
@@ -33,6 +34,8 @@
 - 完成 v0.2.0 产品发现，选择“真实账户与云端私人笔记本”作为唯一核心目标。
 - 明确游客路径、本地配方主动导入、失败恢复、非目标和成功信号。
 - 将经典鸡尾酒配方库拆分为 v0.3.0 候选方向。
+- 完成 v0.2.0 需求规格，定义账户、会话、云端保存、跨设备读取、本地导入和失败恢复的 P0 验收标准。
+- 明确角色权限、数据归属、安全、隐私、可靠性、性能、可访问性和兼容性门槛。
 
 ## 阶段状态
 
@@ -40,7 +43,7 @@
 | --- | --- | --- | --- |
 | 00 流程协调 | 流程协调员 | 可交接 | `docs/development-process/00_process_index.md` |
 | 01 产品发现 | 产品访谈员 | 可交接 | `docs/development-process/01_project_brief.md` |
-| 02 需求规格 | 需求分析师 | 未开始 | `docs/development-process/02_requirements_spec.md` |
+| 02 需求规格 | 需求分析师 | 可交接 | `docs/development-process/02_requirements_spec.md` |
 | 03 产品设计 | UX/UI 设计师 | 未开始 | `docs/development-process/03_design_spec.md` |
 | 04 技术设计 | 解决方案架构师 | 未开始 | `docs/development-process/04_technical_design.md` |
 | 05 实施计划 | 工程计划员 | 未开始 | `docs/development-process/05_implementation_plan.md` |
@@ -71,12 +74,16 @@ v0.1.0 已于 2026-08-12 正式签收并发布。其核心链路为：
 - 本地配方只能在用户主动操作后导入云端，不允许静默上传，重复导入不得产生重复项。
 - v0.2.0 不加入社区、摇一摇、发布、收藏、个人资料、第三方登录、从零创建、已保存配方编辑/删除、笔记本搜索/筛选或经典鸡尾酒配方库。
 - 经典鸡尾酒配方库作为 v0.3.0 候选方向，后续单独进行产品发现。
+- 未验证邮箱账户只有游客能力；多设备会话允许并行，密码重置后全部旧会话失效。
+- 云端保存、认证回跳、导入和失败重试必须幂等；本地导入按“账户 + 本地记录 ID”判重。
+- 私人配方默认私有，本地配方仅在用户主动操作后上传，不用于营销、画像或公开展示。
 - 现有 v0.1.0 历史文档保持原路径，不迁移、不覆盖。
 
 ## 交付物
 
 - `docs/development-process/00_process_index.md`
 - `docs/development-process/01_project_brief.md`
+- `docs/development-process/02_requirements_spec.md`
 
 ## 完成标准
 
@@ -85,13 +92,14 @@ v0.1.0 已于 2026-08-12 正式签收并发布。其核心链路为：
 - [x] v0.1.0 历史交付物和维护入口仍可追溯。
 - [x] v0.2.0 与 v0.3.0 候选范围边界明确。
 - [x] 下一阶段交付物和角色已记录。
+- [x] v0.2.0 P0 需求、权限、数据、边界场景和非功能门槛已形成可测试规格。
 
 ## 开放问题
 
-- 产品层面的版本目标与范围没有阻塞项。
-- 账户边界、导入判重、失败状态和隐私文案需要在 v0.2.0 需求规格阶段细化。
-- 后端、认证、数据库、API 和部署技术尚未选择，应在需求确认后由技术设计阶段决定。
+- 产品和需求层面没有阻塞项。
+- 认证回跳、导入提示和错误恢复的具体页面与交互形态应在产品设计阶段确定。
+- 后端、认证、数据库、API、迁移和部署技术尚未选择，应在产品设计确认后由技术设计阶段决定。
 
 ## 给下一角色的交接
 
-需求分析师先阅读 `docs/development-process/01_project_brief.md`、`docs/development-process/10_maintenance_handoff.md` 和 v0.1.0 核心流程需求，再创建 `docs/development-process/02_requirements_spec.md`。只把已确认的 v0.2.0 产品范围转换为功能需求、非功能需求、权限规则、边界场景和可测试验收标准，不提前进行技术选型或实现，也不纳入 v0.3.0 经典鸡尾酒配方库。
+UX/UI 设计师先阅读 `docs/development-process/01_project_brief.md`、`docs/development-process/02_requirements_spec.md` 和 v0.1.0 核心流程设计，再创建 `docs/development-process/03_design_spec.md`。重点处理真实账户、认证回跳、云端笔记本、本地主动导入及加载/空/失败/超时状态，不改变已确认的权限、安全、隐私和范围边界，也不纳入 v0.3.0 经典鸡尾酒配方库。
