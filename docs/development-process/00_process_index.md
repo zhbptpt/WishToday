@@ -1,6 +1,6 @@
 # 00 WishToday 开发流程索引
 
-状态：实施阶段已启动，Task 22 门禁为 NO-GO
+状态：返回 04 技术设计修订，方案 A 已写入，待用户签收
 负责角色：流程协调员
 日期：2026-08-13
 
@@ -17,17 +17,17 @@
 
 ## 范围
 
-本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。v0.2.0 已进入实施阶段；首项 Supabase 认证能力硬门禁判定为 `NO-GO`，后续云端实现停止，等待返回技术设计阶段改选认证边界。
+本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。v0.2.0 首项 Supabase 认证能力硬门禁判定为 `NO-GO` 后，已停止后续云端实现并返回技术设计阶段。用户确认方案 A，修订设计采用“最小化 NestJS 认证与私人数据网关 + Supabase PostgreSQL”，当前等待书面签收。
 
 ## 当前周期
 
 - 当前版本：v0.2.0
-- 已完成阶段：01 产品发现、02 需求规格、03 产品设计、04 技术设计、05 实施计划
-- 当前阶段：06 实现，Task 22 硬门禁已判定
-- 当前状态：`NO-GO`，实施阻塞
-- 下一阶段：返回 04 技术设计修订认证边界
-- 下一角色：解决方案架构师
-- 下一交付物：修订后的 `docs/development-process/04_technical_design.md`
+- 已完成阶段：01 产品发现、02 需求规格、03 产品设计；原 04 技术设计与 05 实施计划已签收但因门禁结论待修订
+- 当前阶段：04 技术设计修订
+- 当前状态：方案 A 已写入，待用户签收；06 实现保持阻塞
+- 下一阶段：05 实施计划修订
+- 下一角色：当前为用户评审；签收后交接工程计划员
+- 下一交付物：用户签收修订后的 `docs/development-process/04_technical_design.md`
 
 ## 已完成工作
 
@@ -50,6 +50,10 @@
 - 定义每个实施任务的文件、接口、依赖、验证命令、提交边界和回滚规则。
 - 建立 AUTH-01 至 ERROR-01 的逐项追踪，并补齐 24 小时待恢复动作、本地存储降级、限流、浏览器兼容、性能与观测门禁。
 - 用户已于 2026-08-13 书面签收 v0.2.0 实施计划。
+- 完成 Task 22 Supabase 认证能力门禁并得到 `NO-GO`，未降低密码重置后旧会话立即失效标准。
+- 用户确认方案 A：提前引入最小化 NestJS 认证与私人数据网关，保留 Supabase PostgreSQL。
+- 修订技术设计，将密码凭据、Refresh Session、`session_version` 与密码重置终态统一至 PostgreSQL 事务边界。
+- 浏览器不再直连 Supabase Auth、PostgREST 或 Edge Functions；NestJS 成为唯一认证与私人数据 API 入口。
 
 ## 阶段状态
 
@@ -59,9 +63,9 @@
 | 01 产品发现 | 产品访谈员 | 可交接 | `docs/development-process/01_project_brief.md` |
 | 02 需求规格 | 需求分析师 | 可交接 | `docs/development-process/02_requirements_spec.md` |
 | 03 产品设计 | UX/UI 设计师 | 已签收，可交接 | `docs/development-process/03_design_spec.md` |
-| 04 技术设计 | 解决方案架构师 | 已签收，可交接 | `docs/development-process/04_technical_design.md` |
-| 05 实施计划 | 工程计划员 | 已签收，可交接 | `docs/development-process/05_implementation_plan.md` |
-| 06 实现 | 实现工程师 | Task 22 NO-GO，已阻塞 | `docs/development-process/06_implementation_log.md` |
+| 04 技术设计 | 解决方案架构师 | 方案 A 修订完成，待用户签收 | `docs/development-process/04_technical_design.md` |
+| 05 实施计划 | 工程计划员 | 原计划已签收，等待按新架构修订 | `docs/development-process/05_implementation_plan.md` |
+| 06 实现 | 实现工程师 | Task 22 NO-GO，保持阻塞 | `docs/development-process/06_implementation_log.md` |
 | 07 质量保证 | QA 工程师 | 未开始 | `docs/development-process/07_test_report.md` |
 | 08 代码审查 | 代码审查员 | 未开始 | `docs/development-process/08_review_report.md` |
 | 09 发布 | 发布工程师 | 未开始 | `docs/development-process/09_release_notes.md` |
@@ -94,11 +98,14 @@ v0.1.0 已于 2026-08-12 正式签收并发布。其核心链路为：
 - 认证采用原任务回跳型；首次本地导入提示位于认证成功与原任务恢复之间，“稍后处理”不得阻断回跳。
 - 注册成功后进入独立“查收验证邮件”页；密码重置成功后全部旧会话失效并要求重新登录。
 - 手机端保持现有沉浸式单页酒谱结构，账户入口使用右侧书页索引签，展开菜单仅提供必要账户动作。
-- v0.2.0 保留现有 React Web 和 GitHub Pages，采用 Supabase Auth、PostgreSQL、RLS 与 Edge Functions。
+- v0.2.0 保留现有 React Web、GitHub Pages、React Router、Zustand 和 TanStack Query。
+- 认证与私人数据边界改为最小化 NestJS 网关；浏览器不直连 Supabase Auth、PostgREST 或 Edge Functions。
+- 保留 Supabase PostgreSQL；密码凭据、Refresh Session、会话版本和重置 operation 终态使用同一数据库事务边界。
+- NestJS 每次私人请求比较数据库当前 `session_version`；RLS 由受信任事务用户上下文驱动并对缺失上下文默认拒绝。
 - Zustand 仅持久化游客草稿、本地旧配方和待恢复动作；TanStack Query 管理云端配方与导入批次状态。
 - 直接保存使用“账户 + 保存意图 ID”幂等，本地导入使用“账户 + 本地记录 ID”判重。
-- 密码重置使用 `session_version`、RLS 版本比较和 Refresh Token 全局撤销，使旧会话失效。
-- Flutter、NestJS、Redis、对象存储和管理后台仅作为后续演进位置，不进入 v0.2.0。
+- 密码重置原子更新密码哈希、递增 `session_version`、撤销全部 Refresh Session 并写入可查询 operation 终态。
+- 当前仍不引入 Flutter、Redis、对象存储和管理后台；NestJS 仅限认证与私人数据网关职责。
 - 现有 v0.1.0 历史文档保持原路径，不迁移、不覆盖。
 
 ## 交付物
@@ -120,8 +127,9 @@ v0.1.0 已于 2026-08-12 正式签收并发布。其核心链路为：
 - [x] v0.2.0 P0 需求、权限、数据、边界场景和非功能门槛已形成可测试规格。
 - [x] v0.2.0 页面、流程、状态、响应式与可访问性设计已形成规格。
 - [x] 用户书面签收 `docs/development-process/03_design_spec.md`。
-- [x] v0.2.0 技术架构、数据模型、API、安全、迁移、测试和部署方案已形成文档。
-- [x] 用户已于 2026-08-13 书面签收 `docs/development-process/04_technical_design.md`。
+- [x] 原 v0.2.0 技术设计已于 2026-08-13 书面签收，Task 22 已完成其硬能力验证。
+- [x] Task 22 `NO-GO` 后的方案 A 技术架构、数据模型、API、安全、迁移、测试和部署修订已形成文档。
+- [ ] 用户书面签收修订后的 `docs/development-process/04_technical_design.md`。
 - [x] v0.2.0 实施任务顺序、依赖、文件、接口、测试、回滚和 Go/No-Go 门禁已形成文档。
 - [x] 用户已于 2026-08-13 书面签收 `docs/development-process/05_implementation_plan.md`。
 
@@ -129,11 +137,11 @@ v0.1.0 已于 2026-08-12 正式签收并发布。其核心链路为：
 
 - 产品、需求和产品设计内容无阻塞项。
 - `docs/development-process/03_design_spec.md` 已由用户书面签收。
-- `docs/development-process/04_technical_design.md` 已完成并由用户书面签收。
-- `docs/development-process/05_implementation_plan.md` 已完成并由用户书面签收。
+- `docs/development-process/04_technical_design.md` 的原方案已签收；方案 A 修订版已完成，等待用户书面签收。
+- `docs/development-process/05_implementation_plan.md` 原版已签收，但其 Supabase Auth 前提失效，须在修订技术设计签收后重写。
 - Task 22 已确认当前 Supabase 方案未同时取得五项硬能力的契约与 staging 观测证据；Admin 密码更新契约尤其缺少幂等键或可查询终态。
-- 当前没有 Supabase staging 项目和凭据，五项故障注入尚未执行；相关能力没有被误标为通过。
+- NestJS 部署平台、production 自定义域、PostgreSQL driver/query layer、密码哈希具体库与参数、邮件供应商和 staging/production 环境尚未确定；前端与 API 同站是账户功能上线门禁，这些项目进入 Task 21 修订。
 
 ## 给下一角色的交接
 
-Task 22 已完成并触发 `NO-GO`。下一角色为解决方案架构师，返回 Task 20 修订认证边界，使密码更新具备服务端幂等键或可查询契约终态，并保留旧 Access/Refresh Token 立即失效要求。新设计与实施计划签收、且重新执行门禁得到 `GO` 前，不得继续任何云端实现。
+Task 20 修订版已按用户确认的方案 A 写入，当前等待用户书面签收。签收后下一角色为工程计划员，修订 Task 21，废止原计划中 Supabase Auth、Custom Access Token Hook、PostgREST 与 Edge Functions 前提，并建立 NestJS/PostgreSQL 新架构门禁。新实施计划签收且门禁得到 `GO` 前，不得继续私人数据业务实现。
