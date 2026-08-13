@@ -1,0 +1,47 @@
+{
+  "name": "@wishtoday/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22.23.2"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "test": "vitest run --config vitest.config.ts --pool=forks --poolOptions.forks.singleFork=true",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "probe:database": "tsx scripts/database-probe.ts",
+    "probe:staging": "tsx scripts/staging-probe.ts",
+    "probe": "npm run probe:database",
+    "benchmark:argon2": "tsx scripts/argon2-benchmark.ts",
+    "benchmark:argon2:local": "cross-env ARGON2_BENCHMARK_MODE=local tsx scripts/argon2-benchmark.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "~11.1.29",
+    "@nestjs/core": "~11.1.29",
+    "@nestjs/platform-express": "~11.1.29",
+    "argon2": "^0.44.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "cookie-parser": "^1.4.7",
+    "jose": "^6.1.0",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "resend": "^6.0.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "~11.1.29",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/node": "^22.18.0",
+    "@types/pg": "^8.15.5",
+    "@types/supertest": "^6.0.3",
+    "cross-env": "^10.0.0",
+    "supertest": "^7.1.4",
+    "tsx": "^4.20.5",
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

@@ -10,9 +10,10 @@
     "preview": "vite preview",
     "probe:supabase-auth": "node scripts/supabase/auth-capability-probe.mjs",
     "typecheck": "tsc -b",
-    "test": "vitest run && node --test scripts/deployment-config.check.mjs"
+    "test": "vitest run && node --test scripts/deployment-config.check.mjs scripts/render-config.check.mjs"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.85.3",
     "lucide-react": "^0.525.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -21,6 +22,7 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^5.0.0",
