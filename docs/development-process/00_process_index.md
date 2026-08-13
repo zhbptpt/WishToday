@@ -1,6 +1,6 @@
 # 00 WishToday 开发流程索引
 
-状态：实施计划已签收，可交接到实现阶段
+状态：实施阶段已启动，Task 22 门禁为 NO-GO
 负责角色：流程协调员
 日期：2026-08-13
 
@@ -17,17 +17,17 @@
 
 ## 范围
 
-本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。当前记录 v0.2.0 产品发现、需求规格、产品设计、技术设计和实施计划结果；实施计划已由用户书面签收，可交接到实现阶段。
+本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。v0.2.0 已进入实施阶段；首项 Supabase 认证能力硬门禁判定为 `NO-GO`，后续云端实现停止，等待返回技术设计阶段改选认证边界。
 
 ## 当前周期
 
 - 当前版本：v0.2.0
 - 已完成阶段：01 产品发现、02 需求规格、03 产品设计、04 技术设计、05 实施计划
-- 当前阶段：05 实施计划已签收，待启动 06 实现
-- 当前状态：可交接到实现阶段
-- 下一阶段：06 实现
-- 下一角色：实现工程师
-- 下一交付物：`docs/development-process/06_implementation_log.md`
+- 当前阶段：06 实现，Task 22 硬门禁已判定
+- 当前状态：`NO-GO`，实施阻塞
+- 下一阶段：返回 04 技术设计修订认证边界
+- 下一角色：解决方案架构师
+- 下一交付物：修订后的 `docs/development-process/04_technical_design.md`
 
 ## 已完成工作
 
@@ -61,7 +61,7 @@
 | 03 产品设计 | UX/UI 设计师 | 已签收，可交接 | `docs/development-process/03_design_spec.md` |
 | 04 技术设计 | 解决方案架构师 | 已签收，可交接 | `docs/development-process/04_technical_design.md` |
 | 05 实施计划 | 工程计划员 | 已签收，可交接 | `docs/development-process/05_implementation_plan.md` |
-| 06 实现 | 实现工程师 | 未开始 | `docs/development-process/06_implementation_log.md` |
+| 06 实现 | 实现工程师 | Task 22 NO-GO，已阻塞 | `docs/development-process/06_implementation_log.md` |
 | 07 质量保证 | QA 工程师 | 未开始 | `docs/development-process/07_test_report.md` |
 | 08 代码审查 | 代码审查员 | 未开始 | `docs/development-process/08_review_report.md` |
 | 09 发布 | 发布工程师 | 未开始 | `docs/development-process/09_release_notes.md` |
@@ -131,8 +131,9 @@ v0.1.0 已于 2026-08-12 正式签收并发布。其核心链路为：
 - `docs/development-process/03_design_spec.md` 已由用户书面签收。
 - `docs/development-process/04_technical_design.md` 已完成并由用户书面签收。
 - `docs/development-process/05_implementation_plan.md` 已完成并由用户书面签收。
-- Supabase Auth Hook、密码更新幂等/契约终态、全局 Refresh Token 撤销和 RLS 会话版本校验仍待 Task 1 探针验证；硬性能力不满足时必须停止实施并改选认证实现。
+- Task 22 已确认当前 Supabase 方案未同时取得五项硬能力的契约与 staging 观测证据；Admin 密码更新契约尤其缺少幂等键或可查询终态。
+- 当前没有 Supabase staging 项目和凭据，五项故障注入尚未执行；相关能力没有被误标为通过。
 
 ## 给下一角色的交接
 
-实施计划已完成并由用户于 2026-08-13 书面签收。下一角色为实现工程师，先创建 `docs/development-process/06_implementation_log.md` 并执行 Task 1 Supabase 认证能力硬门禁。只有报告为 `GO` 才能继续后续云端实现；`NO-GO` 必须返回技术设计阶段改选认证边界。实现期间不得加入 Flutter、NestJS、Redis、对象存储、管理后台或 v0.3.0 经典鸡尾酒配方库。
+Task 22 已完成并触发 `NO-GO`。下一角色为解决方案架构师，返回 Task 20 修订认证边界，使密码更新具备服务端幂等键或可查询契约终态，并保留旧 Access/Refresh Token 立即失效要求。新设计与实施计划签收、且重新执行门禁得到 `GO` 前，不得继续任何云端实现。

@@ -166,11 +166,11 @@ Task 3 可在 Task 1 证据收集期间独立开发，但不得合并到发布�
 
 **产出接口：** `npm run probe:supabase-auth`；报告结论必须是 `GO` 或 `NO-GO`，并记录 Supabase 产品版本、官方文档 URL、原文摘录、探针环境、故障注入结果和证据时间。报告还必须记录 Auth 限流与 CAPTCHA 的可配置能力；若无法满足已签收阈值，Task 5 在受控认证入口或独立认证网关方案通过审阅前不得开始。
 
-- [ ] **Step 1：先写探针契约测试**
+- [x] **Step 1：先写探针契约测试**
 
   测试 `evaluateCapabilityGate(evidence)` 仅在五项证据均为 `contractual-and-observed` 时返回 `GO`；任何 `observed-only`、`unsupported` 或 `unknown` 均返回 `NO-GO`。
 
-- [ ] **Step 2：运行红灯测试**
+- [x] **Step 2：运行红灯测试**
 
   执行 `node --test scripts/supabase/auth-capability-probe.test.mjs`，预期因探针模块尚不存在而失败。
 
@@ -178,11 +178,13 @@ Task 3 可在 Task 1 证据收集期间独立开发，但不得合并到发布�
 
   使用隔离测试账户验证 recovery、Hook claim、旧 Access Token 的 RLS 拒绝、Refresh Token 全局撤销和密码更新未知结果。探针只输出脱敏用户哈希、能力名和状态，不打印邮箱、密码或令牌。
 
-- [ ] **Step 4：完成契约证据审阅**
+  阻塞记录（2026-08-13）：最小探针已实现；当前没有 Supabase staging 项目、凭据、CLI 或可用本地容器，因此故障注入未执行，所有需观测项保持 `unknown`。
+
+- [x] **Step 4：完成契约证据审阅**
 
   行为测试通过但官方契约未承诺幂等键或可查询终态时仍必须写 `NO-GO`。同时验证密码登录/令牌端点每 IP 每 5 分钟最多 30 次、注册/验证/重置邮件每目标地址每小时最多 3 封及 CAPTCHA 能力；平台不支持时记录受控认证入口的阻塞决策。报告须明确“可继续 Task 4”或“返回 Task 20 改选认证实现”。
 
-- [ ] **Step 5：验证并提交**
+- [x] **Step 5：验证并提交**
 
   执行 `npm run probe:supabase-auth` 和 `node --test scripts/supabase/auth-capability-probe.test.mjs`；提交 `test: verify Supabase auth capability gate`。结论为 `NO-GO` 时在此停止，不创建后续云端功能提交。
 
