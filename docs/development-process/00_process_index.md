@@ -1,6 +1,6 @@
 # 00 WishToday 开发流程索引
 
-状态：等待产品设计书面签收
+状态：可交接到技术设计阶段
 负责角色：流程协调员
 日期：2026-08-13
 
@@ -17,13 +17,13 @@
 
 ## 范围
 
-本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。当前记录 v0.2.0 产品发现、需求规格和产品设计结果，等待产品设计书面签收后进入技术设计，不选择技术方案或实现功能。
+本索引维护 WishToday 各版本所处阶段、负责角色、交付物和交接入口。当前记录 v0.2.0 产品发现、需求规格和已签收的产品设计结果，可交接到技术设计阶段；本阶段不选择技术方案或实现功能。
 
 ## 当前周期
 
 - 当前版本：v0.2.0
-- 已完成阶段：01 产品发现、02 需求规格、03 产品设计草案
-- 当前状态：产品设计待用户书面签收
+- 已完成阶段：01 产品发现、02 需求规格、03 产品设计
+- 当前状态：产品设计已签收，可交接
 - 下一阶段：04 技术设计
 - 下一角色：解决方案架构师
 - 下一交付物：`docs/development-process/04_technical_design.md`
@@ -48,7 +48,7 @@
 | 00 流程协调 | 流程协调员 | 可交接 | `docs/development-process/00_process_index.md` |
 | 01 产品发现 | 产品访谈员 | 可交接 | `docs/development-process/01_project_brief.md` |
 | 02 需求规格 | 需求分析师 | 可交接 | `docs/development-process/02_requirements_spec.md` |
-| 03 产品设计 | UX/UI 设计师 | 待书面签收 | `docs/development-process/03_design_spec.md` |
+| 03 产品设计 | UX/UI 设计师 | 已签收，可交接 | `docs/development-process/03_design_spec.md` |
 | 04 技术设计 | 解决方案架构师 | 未开始 | `docs/development-process/04_technical_design.md` |
 | 05 实施计划 | 工程计划员 | 未开始 | `docs/development-process/05_implementation_plan.md` |
 | 06 实现 | 实现工程师 | 未开始 | `docs/development-process/06_implementation_log.md` |
@@ -102,14 +102,14 @@ v0.1.0 已于 2026-08-12 正式签收并发布。其核心链路为：
 - [x] 下一阶段交付物和角色已记录。
 - [x] v0.2.0 P0 需求、权限、数据、边界场景和非功能门槛已形成可测试规格。
 - [x] v0.2.0 页面、流程、状态、响应式与可访问性设计已形成规格。
-- [ ] 用户书面签收 `docs/development-process/03_design_spec.md`。
+- [x] 用户书面签收 `docs/development-process/03_design_spec.md`。
 
 ## 开放问题
 
 - 产品、需求和产品设计内容无阻塞项。
-- `docs/development-process/03_design_spec.md` 尚待用户书面签收；签收前不得进入技术设计。
-- 后端、认证、数据库、API、迁移和部署技术尚未选择，应在签收后由技术设计阶段决定。
+- `docs/development-process/03_design_spec.md` 已由用户书面签收。
+- 后端、认证、数据库、API、迁移和部署技术尚未选择，应由技术设计阶段决定。
 
 ## 给下一角色的交接
 
-用户书面签收 `docs/development-process/03_design_spec.md` 后，由解决方案架构师创建 `docs/development-process/04_technical_design.md`。技术设计需覆盖真实账户、服务端权限、云端配方、原任务回跳、本地主动导入、幂等和失败恢复，并保持手机端“整屏即书页”及右侧账户索引签的设计边界。不得加入完整账户中心或 v0.3.0 经典鸡尾酒配方库。
+产品设计已完成书面签收。下一角色为解决方案架构师，创建 `docs/development-process/04_technical_design.md`。技术设计需覆盖真实账户、服务端权限、云端配方、原任务回跳、本地主动导入、幂等和失败恢复，并保持手机端“整屏即书页”及右侧账户索引签的设计边界。不得加入完整账户中心或 v0.3.0 经典鸡尾酒配方库。
