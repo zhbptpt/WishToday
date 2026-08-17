@@ -9,13 +9,14 @@ import { RequestIdMiddleware } from "./common/request-id.middleware.js";
 import type { ServerEnv } from "./config/env.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { HealthController } from "./health/health.controller.js";
+import { AuthModule } from "./auth/auth.module.js";
 
 @Module({})
 export class AppModule implements NestModule {
   static register(env: ServerEnv): DynamicModule {
     return {
       module: AppModule,
-      imports: [DatabaseModule.register(env)],
+      imports: [DatabaseModule.register(env), AuthModule.register(env)],
       controllers: [HealthController],
     };
   }

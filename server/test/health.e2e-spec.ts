@@ -3,7 +3,7 @@ import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DatabaseService } from "../src/database/database.service.js";
+import { DATABASE_HEALTH } from "../src/database/database.constants.js";
 import { HealthController } from "../src/health/health.controller.js";
 
 describe("GET /healthz", () => {
@@ -17,7 +17,7 @@ describe("GET /healthz", () => {
   async function createApp(ping: () => Promise<void>) {
     const moduleRef = await Test.createTestingModule({
       controllers: [HealthController],
-      providers: [{ provide: DatabaseService, useValue: { ping } }],
+      providers: [{ provide: DATABASE_HEALTH, useValue: { ping } }],
     }).compile();
 
     app = moduleRef.createNestApplication();

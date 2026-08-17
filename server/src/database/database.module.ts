@@ -1,10 +1,12 @@
-import { DynamicModule, Module } from "@nestjs/common";
+import { DynamicModule, Global, Module } from "@nestjs/common";
 import { Pool } from "pg";
 
 import type { ServerEnv } from "../config/env.js";
-import { DATABASE_POOL } from "./database.constants.js";
+import { DATABASE_HEALTH, DATABASE_POOL } from "./database.constants.js";
 import { DatabaseService } from "./database.service.js";
+import { ScopedDatabaseService } from "./scoped-database.service.js";
 
+@Global()
 @Module({})
 export class DatabaseModule {
   static register(env: ServerEnv): DynamicModule {
@@ -16,8 +18,16 @@ export class DatabaseModule {
           useFactory: () => createDatabasePool(env),
         },
         DatabaseService,
+        {
+          provide: DATABASE_HEALTH,
+          inject: [DatabaseService],
+          useFactory: (database: DatabaseService) => ({
+            ping: () => database.ping(),
+          }),
+        },
+        ScopedDatabaseService,
       ],
-      exports: [DatabaseService],
+      exports: [DATABASE_HEALTH, ScopedDatabaseService],
     };
   }
 }

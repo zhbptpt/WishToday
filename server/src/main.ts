@@ -1,13 +1,19 @@
 import "reflect-metadata";
 
-import { RequestMethod, ValidationPipe } from "@nestjs/common";
+import { RequestMethod, ValidationPipe, type INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";
 import { json, urlencoded } from "express";
+import type { Application } from "express";
 import type { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface.js";
 
 import { AppModule } from "./app.module.js";
 import { getServerEnv } from "./config/env.js";
+
+export function configureTrustedProxy(app: INestApplication): void {
+  const expressApp = app.getHttpAdapter().getInstance() as Application;
+  expressApp.set("trust proxy", 1);
+}
 
 export async function bootstrap(): Promise<void> {
   const env = getServerEnv();
@@ -15,6 +21,7 @@ export async function bootstrap(): Promise<void> {
     bodyParser: false,
   });
 
+  configureTrustedProxy(app);
   app.use(json({ limit: "1mb" }));
   app.use(urlencoded({ extended: true, limit: "1mb" }));
   app.use(cookieParser());

@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "test": "vitest run --config vitest.config.ts --pool=forks --poolOptions.forks.singleFork=true",
+    "test:database": "tsx scripts/database-tests.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",

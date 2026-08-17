@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { ServerEnv } from "../config/env.js";
-import { createDatabasePool } from "./database.module.js";
+import { DATABASE_HEALTH } from "./database.constants.js";
+import { DatabaseService } from "./database.service.js";
+import { DatabaseModule, createDatabasePool } from "./database.module.js";
+import { ScopedDatabaseService } from "./scoped-database.service.js";
 
 const env = {
   databaseUrl: "postgresql://user:password@db.example.com:5432/wishtoday",
@@ -21,5 +24,13 @@ describe("createDatabasePool", () => {
     expect(pool.listenerCount("error")).toBeGreaterThan(0);
 
     await pool.end();
+  });
+
+  it("exports only scoped repository access and the health probe", () => {
+    const module = DatabaseModule.register(env);
+
+    expect(module.exports).toContain(ScopedDatabaseService);
+    expect(module.exports).toContain(DATABASE_HEALTH);
+    expect(module.exports).not.toContain(DatabaseService);
   });
 });

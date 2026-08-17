@@ -5,12 +5,15 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 
-import { DatabaseService } from "../database/database.service.js";
+import {
+  DATABASE_HEALTH,
+  type DatabaseHealth,
+} from "../database/database.constants.js";
 
 @Controller()
 export class HealthController {
   constructor(
-    @Inject(DatabaseService) private readonly database: DatabaseService,
+    @Inject(DATABASE_HEALTH) private readonly database: DatabaseHealth,
   ) {}
 
   @Get("healthz")
