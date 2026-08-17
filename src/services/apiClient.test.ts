@@ -39,6 +39,8 @@ describe("mock API failure controls", () => {
 
     await expect(
       saveDraftAsRecipe({
+        draftId: "draft-api-client-test",
+        saveIntentId: "intent-api-client-test",
         sourceCocktailId: source.id,
         sourceCocktailName: source.nameZh,
         name: `${source.nameZh}验收失败版`,

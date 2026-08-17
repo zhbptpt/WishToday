@@ -23,7 +23,7 @@ beforeEach(async () => {
 });
 
 describe("useWishTodayStore flow state", () => {
-  it("restores the core flow state from localStorage after a reload", async () => {
+  it("persists only the v2 local-flow whitelist after a reload", async () => {
     const savedRecipe: SavedRecipe = {
       id: "saved-persisted",
       sourceCocktailId: sourceCocktail.id,
@@ -39,6 +39,7 @@ describe("useWishTodayStore flow state", () => {
 
     const store = useWishTodayStore.getState();
     store.createDraftFromCocktail(sourceCocktail);
+    await store.saveCurrentDraft();
     store.setSession({
       isAuthenticated: true,
       userId: "user-persisted",
@@ -56,9 +57,29 @@ describe("useWishTodayStore flow state", () => {
       throw new Error("Core flow state was not persisted");
     }
 
+    expect(persistedValue.state).toEqual({
+      schemaVersion: 2,
+      currentDraft: expect.objectContaining({
+        sourceCocktailId: sourceCocktail.id,
+        draftId: expect.any(String),
+        saveIntentId: expect.any(String),
+      }),
+      localLegacyRecipes: [],
+      pendingAction: expect.objectContaining({
+        kind: "saveRecipe",
+        draftId: expect.any(String),
+        saveIntentId: expect.any(String),
+      }),
+    });
+    expect(persistedValue.state).not.toHaveProperty("session");
+    expect(persistedValue.state).not.toHaveProperty("savedRecipes");
+    expect(persistedValue.state).not.toHaveProperty("saveStatus");
+    expect(persistedValue.state).not.toHaveProperty("saveError");
+
     useWishTodayStore.setState({
       currentDraft: undefined,
       lastSavedRecipeId: undefined,
+      pendingAction: undefined,
       savedRecipes: [],
       session: { isAuthenticated: false },
     });
@@ -67,12 +88,10 @@ describe("useWishTodayStore flow state", () => {
 
     expect(useWishTodayStore.getState()).toMatchObject({
       currentDraft: { sourceCocktailId: sourceCocktail.id },
-      lastSavedRecipeId: savedRecipe.id,
-      savedRecipes: [{ id: savedRecipe.id }],
-      session: {
-        isAuthenticated: true,
-        userId: "user-persisted",
-      },
+      localLegacyRecipes: [],
+      pendingAction: { kind: "saveRecipe" },
+      savedRecipes: [],
+      session: { isAuthenticated: false },
     });
   });
 
@@ -82,6 +101,8 @@ describe("useWishTodayStore flow state", () => {
     const draft = useWishTodayStore.getState().currentDraft;
 
     expect(draft).toMatchObject({
+      draftId: expect.any(String),
+      saveIntentId: expect.any(String),
       sourceCocktailId: sourceCocktail.id,
       sourceCocktailName: sourceCocktail.nameZh,
       name: `${sourceCocktail.nameZh}改造版`,
@@ -159,11 +180,36 @@ describe("useWishTodayStore flow state", () => {
     expect(result.status).toBe("authRequired");
     expect(useWishTodayStore.getState()).toMatchObject({
       redirectAction: "saveRecipe",
+      pendingAction: {
+        kind: "saveRecipe",
+        draftId: useWishTodayStore.getState().currentDraft?.draftId,
+        saveIntentId: useWishTodayStore.getState().currentDraft?.saveIntentId,
+      },
       saveStatus: "idle",
     });
     expect(useWishTodayStore.getState().currentDraft?.sourceCocktailId).toBe(
       sourceCocktail.id,
     );
+  });
+
+  it("does not resume saving when either pending action identifier changed", async () => {
+    const saveRecipe = vi.fn();
+    const store = useWishTodayStore.getState();
+    store.createDraftFromCocktail(sourceCocktail);
+    await store.saveCurrentDraft(saveRecipe);
+    const draft = useWishTodayStore.getState().currentDraft;
+
+    if (!draft) {
+      throw new Error("Draft was not created");
+    }
+
+    store.setCurrentDraft({ ...draft, saveIntentId: crypto.randomUUID() });
+    store.setSession({ isAuthenticated: true, userId: "user-1" });
+
+    await expect(
+      useWishTodayStore.getState().continueAfterAuth(saveRecipe),
+    ).resolves.toEqual({ status: "emptyDraft" });
+    expect(saveRecipe).not.toHaveBeenCalled();
   });
 
   it("validates draft name, ingredients, amount, and unit before preview or save", () => {

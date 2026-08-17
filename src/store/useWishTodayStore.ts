@@ -1,18 +1,26 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import {
-  createJSONStorage,
-  persist,
-  type StateStorage,
-} from "zustand/middleware";
+  createPendingAction,
+  matchesSaveRecipePendingAction,
+} from "../routes/pendingAction";
 import { saveDraftAsRecipe } from "../services/recipeService";
 import type {
   Cocktail,
   CocktailIngredient,
   DiyDraft,
   Ingredient,
+  LocalLegacyRecipe,
+  PendingAction,
   SavedRecipe,
   UserSession,
 } from "../types/domain";
+import { migrateV1ToV2 } from "./persistence/migrateV1ToV2";
+import { PERSISTENCE_VERSION } from "./persistence/schema";
+import {
+  FLOW_STATE_STORAGE_KEY,
+  createResilientStorage,
+} from "./persistence/storage";
 
 type SaveStatus = "idle" | "saving" | "success" | "error";
 type SaveResult =
@@ -23,20 +31,14 @@ type SaveResult =
   | { status: "error"; error: string };
 type SaveRecipeFn = (draft: DiyDraft) => Promise<SavedRecipe>;
 
-const memoryStorageItems: Record<string, string> = {};
-const memoryStorage: StateStorage = {
-  getItem: (name) => memoryStorageItems[name] ?? null,
-  removeItem: (name) => {
-    delete memoryStorageItems[name];
-  },
-  setItem: (name, value) => {
-    memoryStorageItems[name] = value;
-  },
-};
-
 type WishTodayState = {
+  schemaVersion: typeof PERSISTENCE_VERSION;
   currentDraft?: DiyDraft;
+  clientBatchId?: string;
   lastSavedRecipeId?: string;
+  localLegacyRecipes: LocalLegacyRecipe[];
+  pendingAction?: PendingAction;
+  persistenceAvailable: boolean;
   redirectAction?: "saveRecipe";
   saveError?: string;
   savedRecipes: SavedRecipe[];
@@ -83,6 +85,8 @@ function sortSavedRecipes(recipes: SavedRecipe[]): SavedRecipe[] {
 
 function toDraft(cocktail: Cocktail): DiyDraft {
   return {
+    draftId: crypto.randomUUID(),
+    saveIntentId: crypto.randomUUID(),
     sourceCocktailId: cocktail.id,
     sourceCocktailName: cocktail.nameZh,
     name: `${cocktail.nameZh}改造版`,
@@ -121,17 +125,18 @@ function validateDraft(draft?: DiyDraft): string[] {
   return [];
 }
 
-function getStorage(): StateStorage {
-  if (typeof window === "undefined") {
-    return memoryStorage;
-  }
-
-  return window.localStorage;
-}
+let updatePersistenceAvailability = (_available: boolean) => {};
+const flowStorage = createResilientStorage({
+  onAvailabilityChange: (available) =>
+    updatePersistenceAvailability(available),
+});
 
 export const useWishTodayStore = create<WishTodayState>()(
   persist(
     (set, get) => ({
+      schemaVersion: PERSISTENCE_VERSION,
+      localLegacyRecipes: [],
+      persistenceAvailable: flowStorage.isPersistent(),
       savedRecipes: [],
       saveStatus: "idle",
       session: initialSession,
@@ -179,7 +184,11 @@ export const useWishTodayStore = create<WishTodayState>()(
         })),
       clearCurrentDraft: () => set({ currentDraft: undefined }),
       continueAfterAuth: async (saveRecipe = saveDraftAsRecipe) => {
-        if (get().redirectAction !== "saveRecipe") {
+        const draft = get().currentDraft;
+        if (
+          !draft ||
+          !matchesSaveRecipePendingAction(get().pendingAction, draft)
+        ) {
           return { status: "emptyDraft" };
         }
 
@@ -243,8 +252,12 @@ export const useWishTodayStore = create<WishTodayState>()(
       },
       resetFlow: () =>
         set({
+          schemaVersion: PERSISTENCE_VERSION,
+          clientBatchId: undefined,
           currentDraft: undefined,
           lastSavedRecipeId: undefined,
+          localLegacyRecipes: [],
+          pendingAction: undefined,
           redirectAction: undefined,
           saveError: undefined,
           savedRecipes: [],
@@ -266,7 +279,13 @@ export const useWishTodayStore = create<WishTodayState>()(
         }
 
         if (!get().session.isAuthenticated) {
+          const pendingAction = createPendingAction({
+            kind: "saveRecipe",
+            draftId: draft.draftId,
+            saveIntentId: draft.saveIntentId,
+          });
           set({
+            pendingAction,
             redirectAction: "saveRecipe",
             saveError: undefined,
             saveStatus: "idle",
@@ -281,6 +300,7 @@ export const useWishTodayStore = create<WishTodayState>()(
           set((state) => ({
             currentDraft: undefined,
             lastSavedRecipeId: recipe.id,
+            pendingAction: undefined,
             redirectAction: undefined,
             saveError: undefined,
             savedRecipes: sortSavedRecipes([recipe, ...state.savedRecipes]),
@@ -295,7 +315,20 @@ export const useWishTodayStore = create<WishTodayState>()(
         }
       },
       setCurrentDraft: (draft) => set({ currentDraft: draft }),
-      setRedirectAction: (action) => set({ redirectAction: action }),
+      setRedirectAction: (action) => {
+        const draft = get().currentDraft;
+        set({
+          redirectAction: action,
+          pendingAction:
+            action === "saveRecipe" && draft
+              ? createPendingAction({
+                  kind: "saveRecipe",
+                  draftId: draft.draftId,
+                  saveIntentId: draft.saveIntentId,
+                })
+              : undefined,
+        });
+      },
       setSession: (session) => set({ session }),
       updateDraftInfo: (fields) => {
         const draft = get().currentDraft;
@@ -337,17 +370,28 @@ export const useWishTodayStore = create<WishTodayState>()(
       validateCurrentDraft: () => validateDraft(get().currentDraft),
     }),
     {
-      name: "wishtoday-flow-state",
-      storage: createJSONStorage(getStorage),
+      name: FLOW_STATE_STORAGE_KEY,
+      version: PERSISTENCE_VERSION,
+      storage: createJSONStorage(() => flowStorage),
+      migrate: (persistedState) => migrateV1ToV2(persistedState),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...migrateV1ToV2(persistedState),
+      }),
+      onRehydrateStorage: () => () => {
+        updatePersistenceAvailability(flowStorage.isPersistent());
+      },
       partialize: (state) => ({
+        schemaVersion: state.schemaVersion,
         currentDraft: state.currentDraft,
-        lastSavedRecipeId: state.lastSavedRecipeId,
-        redirectAction: state.redirectAction,
-        saveError: state.saveError,
-        savedRecipes: state.savedRecipes,
-        saveStatus: state.saveStatus,
-        session: state.session,
+        localLegacyRecipes: state.localLegacyRecipes,
+        pendingAction: state.pendingAction,
+        clientBatchId: state.clientBatchId,
       }),
     },
   ),
 );
+
+updatePersistenceAvailability = (available) => {
+  useWishTodayStore.setState({ persistenceAvailable: available });
+};

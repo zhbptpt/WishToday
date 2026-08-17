@@ -81,6 +81,8 @@ export type Ingredient = {
 };
 
 export type DiyDraft = {
+  draftId: string;
+  saveIntentId: string;
   sourceCocktailId: string;
   sourceCocktailName: string;
   name: string;
@@ -104,6 +106,22 @@ export type SavedRecipe = {
   notes: string;
   createdAt: string;
 };
+
+export type LocalLegacyRecipe = Omit<SavedRecipe, "id"> & {
+  localRecordId: string;
+  steps: string[];
+  migrationSource: "v0.1-source" | "v0.1-fallback";
+};
+
+export type PendingAction =
+  | {
+      kind: "saveRecipe";
+      draftId: string;
+      saveIntentId: string;
+      expiresAt: string;
+    }
+  | { kind: "openNotebook"; expiresAt: string }
+  | { kind: "openRecipe"; recipeId: string; expiresAt: string };
 
 export type UserSession = {
   isAuthenticated: boolean;

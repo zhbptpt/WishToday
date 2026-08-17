@@ -25,6 +25,8 @@ export async function createDraftFromCocktailId(
 
   return mockDelay(
     {
+      draftId: crypto.randomUUID(),
+      saveIntentId: crypto.randomUUID(),
       sourceCocktailId: cocktail.id,
       sourceCocktailName: cocktail.nameZh,
       name: `${cocktail.nameZh}改造版`,
