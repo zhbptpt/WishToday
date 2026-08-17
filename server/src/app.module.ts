@@ -9,7 +9,6 @@ import { RequestIdMiddleware } from "./common/request-id.middleware.js";
 import type { ServerEnv } from "./config/env.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { HealthController } from "./health/health.controller.js";
-import { StagingBenchmarkController } from "./health/staging-benchmark.controller.js";
 
 @Module({})
 export class AppModule implements NestModule {
@@ -17,7 +16,7 @@ export class AppModule implements NestModule {
     return {
       module: AppModule,
       imports: [DatabaseModule.register(env)],
-      controllers: [HealthController, StagingBenchmarkController],
+      controllers: [HealthController],
     };
   }
 
