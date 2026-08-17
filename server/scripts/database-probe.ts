@@ -1,11 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { performance } from "node:perf_hooks";
 
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 
 import { getServerEnv } from "../src/config/env.js";
+import { assertStrictTlsStream } from "../src/database/strict-tls.js";
 
 const SAMPLE_COUNT = 20;
+
+type PoolClientWithConnection = PoolClient & {
+  connection?: {
+    stream?: unknown;
+  };
+};
 
 function percentile(values: number[], percentileValue: number): number {
   const sorted = [...values].sort((left, right) => left - right);
@@ -58,17 +65,11 @@ async function run(): Promise<void> {
   });
 
   try {
-    const sslResult = await pool.query<{ ssl: boolean }>(
-      "SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()",
-    );
-    if (sslResult.rows[0]?.ssl !== true) {
-      throw new Error("PostgreSQL probe connection is not using SSL");
-    }
-
     const contextKey = "wishtoday.probe_user_id";
     const contextValue = randomUUID();
-    const client = await pool.connect();
+    const client = (await pool.connect()) as PoolClientWithConnection;
     try {
+      assertStrictTlsStream(client.connection?.stream);
       await client.query("BEGIN");
       const inside = await client.query<{ value: string }>(
         "SELECT set_config($1, $2, true) AS value",
