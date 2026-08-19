@@ -73,22 +73,34 @@ describe("PendingAction", () => {
     );
 
     expect(
-      matchesSaveRecipePendingAction(action, {
-        draftId: "draft-1",
-        saveIntentId: "intent-1",
-      }),
+      matchesSaveRecipePendingAction(
+        action,
+        {
+          draftId: "draft-1",
+          saveIntentId: "intent-1",
+        },
+        now,
+      ),
     ).toBe(true);
     expect(
-      matchesSaveRecipePendingAction(action, {
-        draftId: "draft-1",
-        saveIntentId: "intent-2",
-      }),
+      matchesSaveRecipePendingAction(
+        action,
+        {
+          draftId: "draft-1",
+          saveIntentId: "intent-2",
+        },
+        now,
+      ),
     ).toBe(false);
     expect(
-      matchesSaveRecipePendingAction(action, {
-        draftId: "draft-2",
-        saveIntentId: "intent-1",
-      }),
+      matchesSaveRecipePendingAction(
+        action,
+        {
+          draftId: "draft-2",
+          saveIntentId: "intent-1",
+        },
+        now,
+      ),
     ).toBe(false);
     expect(
       matchesSaveRecipePendingAction(
