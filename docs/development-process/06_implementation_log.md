@@ -1,17 +1,17 @@
 # 06 WishToday v0.2.0 实施日志
 
-状态：Task 3 本地实现与兼容验证完成，待远程 staging 配置
+状态：Task 3 实现、真实 staging 验收与归档完成
 
 负责角色：实现工程师
 
-日期：2026-08-17
+日期：2026-08-19
 
 ## 当前阶段
 
 - 当前版本：v0.2.0
 - 当前阶段：06 实现
 - 当前任务：Task 3，账户数据库、注册验证与登录核心
-- 当前结论：账户 schema、注册验证、重发验证、登录核心与本地数据库兼容套件已完成；真实 Supabase staging migrations 和 Resend 投递尚未执行
+- 当前结论：账户 schema、注册验证、重发验证、登录核心、本地数据库兼容套件及真实 Supabase/Render/Resend staging 链路均已完成验收
 - 范围边界：仅实现账户、验证 token、Session 创建、密码恢复数据预留和精确限流；未实现 Refresh 轮换、退出、完整密码恢复、私人配方或前端认证接线
 
 ## Task 1 历史完成记录
@@ -128,13 +128,19 @@ Task 1 最终全量复验和提交完成后，执行 Task 2：版本化本地持
 - 根前端：26 个测试文件、121 项 Vitest 和 6 项部署配置检查全部通过；类型检查与 GitHub Pages 生产构建通过，SPA `404.html` fallback 正常生成。
 - 最终差异检查覆盖 Secret、真实邮箱、原始 token、构建产物和范围外功能；`git diff --check` 已通过。
 
+## Task 3 真实 staging 验收
+
+- 3 个认证 migrations 已应用到隔离 Supabase staging；远程权限检查确认认证 repository 使用固定数据库角色，敏感表未向 `PUBLIC` 或 Supabase 预置客户端角色开放。
+- Render `wishtoday-api-staging` 已配置专用 Resend Sending access Key；Secret 仅保存在部署平台，未写入 Git、实施日志或聊天。
+- 公开 staging 健康检查返回 `200 {"status":"ok"}`，响应不包含数据库或部署凭据。
+- 使用一次性隔离测试账户完成真实注册、邮件投递、邮箱验证和登录：注册返回 `202 ACCEPTED`，邮件供应商状态为 `delivered`，验证返回 `200 PROCESSED`，登录返回 `200` 并签发 600 秒 Access Token。
+- 验收过程中未记录真实邮箱、密码、Resend Key、验证 token、Access Token 或数据库凭据。
+
 ## Task 3 遗留未处理问题
 
-- 尚未把 3 个 migrations 应用到真实远程 Supabase staging；本地 Supabase PostgreSQL 17 结果不能替代远程变更验收。
-- 尚未配置并验证真实 Resend staging 投递。当前无 `RESEND_API_KEY` 时邮件适配器会失败并写入不含敏感内容的警告，用户可在配置后通过重发恢复。
 - 异步邮件没有持久化队列，进程在投递过程中退出时可能丢信；Task 3 不扩展消息队列范围。
 - 前端 `VITE_CLOUD_FEATURES_ENABLED` 默认关闭，因此尚未向 v0.1.0 用户暴露认证入口；前端认证接线留到后续任务。
 
 ## 下一步推荐执行任务
 
-在配置真实 Supabase staging migrations 与 Resend 投递检查点后，执行 Task 4：会话轮换、当前设备退出与原子密码重置。
+执行 Task 4：会话轮换、当前设备退出与原子密码重置。
