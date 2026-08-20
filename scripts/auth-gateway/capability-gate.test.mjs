@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
@@ -158,11 +159,13 @@ test("resolves only an attested Render staging configuration", () => {
     DATABASE_CA_CERT_BASE64: "private-ca",
     TOKEN_PEPPER: "private-pepper-value-that-is-long-enough",
     ALLOWED_ORIGINS: "https://zhbptpt.github.io",
+    PORT: "10000",
   });
 
   assert.equal(config.baseUrl, "https://wishtoday-api-staging.onrender.com");
   assert.equal(config.origin, "https://zhbptpt.github.io");
   assert.equal(config.service, "wishtoday-api-staging");
+  assert.equal(config.port, 10000);
   assert.equal(config.commit, "abcdef1234567890abcdef1234567890abcdef12");
 });
 
@@ -187,6 +190,7 @@ test("rejects non-staging, wildcard origin, and incomplete probe configuration",
     DATABASE_CA_CERT_BASE64: "private-ca",
     TOKEN_PEPPER: "private-pepper-value-that-is-long-enough",
     ALLOWED_ORIGINS: "https://zhbptpt.github.io",
+    PORT: "10000",
   };
 
   assert.throws(() => resolveStagingConfig({ ...base, RENDER: "false" }));
@@ -289,12 +293,285 @@ test("builds probe headers with the requested device identity", () => {
   );
 });
 
-test("passes a controlled forwarded IP through the real HTTP request", () => {
+test("does not send a client-controlled forwarded IP through the real HTTP request", () => {
   const headers = buildProbeHeaders(
     { origin: "https://example.test" },
     { body: {}, forwardedFor: "198.18.10.20" },
   );
-  assert.equal(headers["x-forwarded-for"], "198.18.10.20");
+  assert.equal(Object.hasOwn(headers, "x-forwarded-for"), false);
+});
+
+test("limits the staging probe to three database sessions", async () => {
+  const capabilityGate = await import("./capability-gate.mjs");
+  const options = capabilityGate.buildProbePoolOptions({
+    databaseUrl: "postgresql://private.example.test/staging",
+    databaseCaCert: "test-ca",
+  });
+
+  assert.equal(options.max, 3);
+  assert.deepEqual(options.ssl, {
+    ca: "test-ca",
+    rejectUnauthorized: true,
+  });
+});
+
+test("builds a deterministic isolated loopback source for real HTTP rate limits", async () => {
+  const capabilityGate = await import("./capability-gate.mjs");
+  const first = capabilityGate.buildLoopbackRateLimitTransport(
+    { port: 10_000 },
+    "a1b2c3d4",
+  );
+  const same = capabilityGate.buildLoopbackRateLimitTransport(
+    { port: 10_000 },
+    "a1b2c3d4",
+  );
+  const other = capabilityGate.buildLoopbackRateLimitTransport(
+    { port: 10_000 },
+    "b1b2c3d4",
+  );
+  const differentSuffix = capabilityGate.buildLoopbackRateLimitTransport(
+    { port: 10_000 },
+    "a1b2c3d5",
+  );
+
+  assert.deepEqual(first, same);
+  assert.equal(first.hostname, "127.0.0.1");
+  assert.equal(first.port, 10_000);
+  assert.match(first.localAddress, /^127\.(?:\d{1,3}\.){2}\d{1,3}$/u);
+  assert.notEqual(first.localAddress, "127.0.0.1");
+  assert.notEqual(first.localAddress, other.localAddress);
+  assert.notEqual(first.localAddress, differentSuffix.localAddress);
+  assert.throws(() =>
+    capabilityGate.buildLoopbackRateLimitTransport({ port: 10_000 }, "invalid"),
+  );
+});
+
+test("waits for the next five-minute window when less than one minute remains", async () => {
+  const capabilityGate = await import("./capability-gate.mjs");
+
+  assert.equal(typeof capabilityGate.rateLimitWindowDelay, "function");
+  assert.equal(capabilityGate.rateLimitWindowDelay(1_000), 0);
+  assert.equal(capabilityGate.rateLimitWindowDelay(250_000), 51_000);
+});
+
+test("bounds a loopback request when the server does not finish", async (t) => {
+  const capabilityGate = await import("./capability-gate.mjs");
+  assert.equal(typeof capabilityGate.loopbackApiRequest, "function");
+  let serverFinished = false;
+  const server = createServer((request, response) => {
+    request.resume();
+    response.writeHead(202, {
+      "content-type": "application/json",
+      "x-request-id": "auth-gate-hard-timeout",
+    });
+    let writes = 0;
+    const interval = setInterval(() => {
+      writes += 1;
+      if (writes < 10) {
+        response.write(" ");
+        return;
+      }
+      clearInterval(interval);
+      serverFinished = true;
+      response.end(JSON.stringify({ ok: true }));
+    }, 20);
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const address = server.address();
+  assert.notEqual(address, null);
+  assert.equal(typeof address, "object");
+
+  await assert.rejects(
+    () =>
+      capabilityGate.loopbackApiRequest(
+        { origin: "https://zhbptpt.github.io" },
+        "/api/v1/auth/password-recovery",
+        {
+          body: { email: "auth-gate-timeout@example.com" },
+          requestId: "auth-gate-hard-timeout",
+          timeoutMs: 100,
+        },
+        {
+          hostname: "127.0.0.1",
+          port: address.port,
+          localAddress: "127.20.30.40",
+        },
+      ),
+    /timed out/iu,
+  );
+  assert.equal(serverFinished, false);
+});
+
+test("drains every concurrent HTTP request before surfacing a rejection", async () => {
+  const capabilityGate = await import("./capability-gate.mjs");
+  let slowRequestFinished = false;
+  const slowRequest = new Promise((resolve) => {
+    setTimeout(() => {
+      slowRequestFinished = true;
+      resolve({ status: 202 });
+    }, 10);
+  });
+  const failedRequest = Promise.reject(new Error("request failed"));
+  void failedRequest.catch(() => undefined);
+
+  await assert.rejects(() =>
+    capabilityGate.drainApiRequests([
+      failedRequest,
+      slowRequest,
+    ]),
+  );
+  assert.equal(slowRequestFinished, true);
+});
+
+test("exposes the staging rate-limit check for isolated transport verification", async () => {
+  const capabilityGate = await import("./capability-gate.mjs");
+
+  assert.equal(typeof capabilityGate.runRateLimitChecks, "function");
+});
+
+test("checks rate limits through an isolated loopback source without scanning shared counters", async (t) => {
+  const capabilityGate = await import("./capability-gate.mjs");
+  const remoteAddresses = new Set();
+  const emailCounts = new Map();
+  let ipCount = 0;
+  const server = createServer((request, response) => {
+    const chunks = [];
+    request.on("data", (chunk) => chunks.push(chunk));
+    request.on("end", () => {
+      remoteAddresses.add(request.socket.remoteAddress);
+      const { email } = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      const normalizedEmail = email.trim().toLowerCase();
+      const emailCount = (emailCounts.get(normalizedEmail) ?? 0) + 1;
+      emailCounts.set(normalizedEmail, emailCount);
+      ipCount += 1;
+      const limited = ipCount > 30 || emailCount > 3;
+      response.writeHead(limited ? 429 : 202, {
+        "content-type": "application/json",
+        "x-request-id": request.headers["x-request-id"],
+      });
+      response.end(
+        JSON.stringify(
+          limited
+            ? { ok: false, code: "RATE_LIMITED" }
+            : { ok: true },
+        ),
+      );
+    });
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const address = server.address();
+  assert.notEqual(address, null);
+  assert.equal(typeof address, "object");
+
+  const databaseCalls = [];
+  const windowDelays = [];
+  let exactCounterReads = 0;
+  const pool = {
+    async query(sql, parameters = []) {
+      databaseCalls.push({ sql, parameters });
+      if (/select\s+subject_hash[\s\S]+from public\.rate_limit_counters/iu.test(sql)) {
+        throw new Error("rate-limit probe must not scan shared counters");
+      }
+      if (/select request_count/iu.test(sql)) {
+        exactCounterReads += 1;
+        return { rows: [{ requestCount: exactCounterReads === 1 ? 31 : 4 }] };
+      }
+      if (/select count\(\*\)::int/iu.test(sql)) {
+        return { rows: [{ matchingCount: 26 }] };
+      }
+      if (/delete from public\.rate_limit_counters/iu.test(sql)) {
+        return { rowCount: parameters[0].length };
+      }
+      throw new Error("unexpected rate-limit probe query");
+    },
+  };
+
+  const result = await capabilityGate.runRateLimitChecks({
+    config: {
+      baseUrl: "https://must-not-be-requested.example.test",
+      origin: "https://zhbptpt.github.io",
+      port: address.port,
+      tokenPepper: "test-pepper-value-that-is-long-enough",
+    },
+    pool,
+    runId: "a1b2c3d4",
+    now: () => 250_000,
+    sleep: async (delay) => windowDelays.push(delay),
+  });
+
+  assert.equal(result.status, "pass");
+  assert.deepEqual(windowDelays, [51_000]);
+  assert.equal(ipCount, 31);
+  assert.equal(remoteAddresses.size, 1);
+  assert.match([...remoteAddresses][0], /^127\./u);
+  assert.equal(
+    databaseCalls.some(({ sql }) =>
+      /select\s+subject_hash[\s\S]+from public\.rate_limit_counters/iu.test(sql),
+    ),
+    false,
+  );
+  const cleanup = databaseCalls.find(({ sql }) =>
+    /delete from public\.rate_limit_counters/iu.test(sql),
+  );
+  assert.equal(cleanup.parameters[0].length, 29);
+});
+
+test("does not race cleanup against requests whose transport completion is unknown", async (t) => {
+  const capabilityGate = await import("./capability-gate.mjs");
+  let finishedRequests = 0;
+  const server = createServer((request, response) => {
+    request.resume();
+    request.on("end", () => {
+      setTimeout(() => {
+        finishedRequests += 1;
+        response.writeHead(202, {
+          "content-type": "application/json",
+          "x-request-id": request.headers["x-request-id"],
+        });
+        response.end(JSON.stringify({ ok: true }));
+      }, 30);
+    });
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const address = server.address();
+  assert.notEqual(address, null);
+  assert.equal(typeof address, "object");
+  const databaseCalls = [];
+
+  await assert.rejects(() =>
+    capabilityGate.runRateLimitChecks({
+      config: {
+        origin: "https://zhbptpt.github.io",
+        port: address.port,
+        tokenPepper: "test-pepper-value-that-is-long-enough",
+      },
+      pool: {
+        async query(sql, parameters = []) {
+          databaseCalls.push({ sql, parameters });
+          return { rows: [], rowCount: 0 };
+        },
+      },
+      runId: "b1c2d3e4",
+      now: () => 1_000,
+      requestTimeoutMs: 5,
+    }),
+  );
+
+  assert.equal(databaseCalls.length, 0);
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  assert.equal(finishedRequests, 4);
 });
 
 test("accepts only exact HTTP rate-limit threshold results", () => {

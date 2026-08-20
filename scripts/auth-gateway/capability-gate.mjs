@@ -4,6 +4,7 @@ import {
   randomBytes,
   randomUUID,
 } from "node:crypto";
+import { request as httpRequest } from "node:http";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
@@ -35,6 +36,9 @@ const FAULT_TABLES = Object.freeze([
 const PROBE_TRIGGER_NAME = /^auth_gate_(?:trigger|commit_trigger)_[a-f0-9]+$/u;
 const PROBE_FUNCTION_NAME = /^auth_gate_(?:fail|commit_notify)_[a-f0-9]+$/u;
 const PROBE_RLS_TABLE_NAME = /^auth_gate_rls_[a-f0-9]+$/u;
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MINIMUM_REMAINING_MS = 60 * 1000;
+const RATE_LIMIT_BOUNDARY_SETTLE_MS = 1000;
 const requireFromServer = createRequire(
   new URL("../../server/package.json", import.meta.url),
 );
@@ -188,6 +192,10 @@ export function resolveStagingConfig(source = process.env) {
     databaseUrl,
     requireValue(source, "AUTH_GATEWAY_DATABASE_IDENTITY_SHA256"),
   );
+  const port = Number(requireValue(source, "PORT"));
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error("PORT must be a valid TCP port");
+  }
 
   return {
     baseUrl: `https://${hostname}`,
@@ -199,6 +207,7 @@ export function resolveStagingConfig(source = process.env) {
     region: source.WISHTODAY_DEPLOYMENT_REGION,
     plan: source.WISHTODAY_DEPLOYMENT_PLAN,
     databaseUrl,
+    port,
     databaseCaCert: Buffer.from(
       requireValue(source, "DATABASE_CA_CERT_BASE64"),
       "base64",
@@ -242,9 +251,6 @@ export function buildProbeHeaders(config, options = {}) {
       : {}),
     ...(options.userAgent ? { "user-agent": options.userAgent } : {}),
     ...(options.requestId ? { "x-request-id": options.requestId } : {}),
-    ...(options.forwardedFor
-      ? { "x-forwarded-for": options.forwardedFor }
-      : {}),
     ...(options.cookies
       ? {
           cookie: `${REFRESH_COOKIE_NAME}=${options.cookies.refresh}; ${CSRF_COOKIE_NAME}=${options.cookies.csrf}`,
@@ -274,6 +280,101 @@ export function classifyRateLimitResponses(results, expectedSuccesses) {
   if (successes.length + limited.length !== results.length) {
     throw new Error("RATE_LIMIT_HTTP_UNEXPECTED_RESPONSE");
   }
+}
+
+export async function drainApiRequests(requests) {
+  const settled = await Promise.allSettled(requests);
+  const rejected = settled.find((result) => result.status === "rejected");
+  if (rejected) throw new Error("RATE_LIMIT_HTTP_REQUEST_FAILED");
+  return settled.map((result) => result.value);
+}
+
+export function buildLoopbackRateLimitTransport(config, runId) {
+  if (!/^[a-f0-9]{8}$/u.test(runId)) {
+    throw new Error("Rate-limit probe run id must be eight hexadecimal characters");
+  }
+  if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65_535) {
+    throw new Error("Rate-limit probe port is invalid");
+  }
+  const bytes = createHash("sha256").update(runId, "utf8").digest();
+  return {
+    hostname: "127.0.0.1",
+    port: config.port,
+    localAddress: `127.${(bytes[0] % 254) + 1}.${(bytes[1] % 254) + 1}.${(bytes[2] % 254) + 1}`,
+  };
+}
+
+export function rateLimitWindowDelay(nowMs) {
+  const remaining = RATE_LIMIT_WINDOW_MS - (nowMs % RATE_LIMIT_WINDOW_MS);
+  return remaining <= RATE_LIMIT_MINIMUM_REMAINING_MS
+    ? remaining + RATE_LIMIT_BOUNDARY_SETTLE_MS
+    : 0;
+}
+
+async function waitForStableRateLimitWindow(
+  now = Date.now,
+  sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay)),
+) {
+  const delay = rateLimitWindowDelay(now());
+  if (delay > 0) await sleep(delay);
+}
+
+export async function loopbackApiRequest(config, path, options, transport) {
+  const body = options.body ? JSON.stringify(options.body) : undefined;
+  const timeoutMs = options.timeoutMs ?? 15_000;
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(
+      {
+        hostname: transport.hostname,
+        port: transport.port,
+        path,
+        method: options.method ?? (body ? "POST" : "GET"),
+        localAddress: transport.localAddress,
+        headers: buildProbeHeaders(config, options),
+      },
+      (response) => {
+        const chunks = [];
+        let size = 0;
+        response.on("data", (chunk) => {
+          size += chunk.length;
+          if (size > 1024 * 1024) {
+            request.destroy(new Error("Rate-limit probe response is too large"));
+            return;
+          }
+          chunks.push(chunk);
+        });
+        response.on("end", () => {
+          clearTimeout(deadline);
+          let payload;
+          try {
+            payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+          } catch {
+            payload = null;
+          }
+          const requestId = response.headers["x-request-id"];
+          resolve({
+            status: response.statusCode ?? 0,
+            payload,
+            requestId: Array.isArray(requestId) ? requestId[0] : requestId,
+            cookies: extractSessionCookies(response.headers["set-cookie"] ?? []),
+          });
+        });
+        response.on("error", (error) => {
+          clearTimeout(deadline);
+          reject(error);
+        });
+      },
+    );
+    const deadline = setTimeout(() => {
+      request.destroy(new Error("Rate-limit probe request timed out"));
+    }, timeoutMs);
+    request.on("error", (error) => {
+      clearTimeout(deadline);
+      reject(error);
+    });
+    if (body) request.write(body);
+    request.end();
+  });
 }
 
 function buildFetchOptions(config, options = {}) {
@@ -1145,13 +1246,15 @@ async function runSessionChecks(context) {
   }
 }
 
-async function runRateLimitChecks(context) {
-  const suffix = Number.parseInt(context.runId.slice(0, 4), 16);
-  const ipAddress = `198.18.${(suffix >> 8) & 255}.${suffix & 255}`;
-  const emailIpAddress = `198.19.${(suffix >> 8) & 255}.${suffix & 255}`;
+export async function runRateLimitChecks(context) {
+  await waitForStableRateLimitWindow(context.now, context.sleep);
+  const transport = buildLoopbackRateLimitTransport(
+    context.config,
+    context.runId,
+  );
   const normalizedEmail = `auth-gate-rate-${context.runId}@example.com`;
   const distinctEmails = Array.from(
-    { length: 31 },
+    { length: 27 },
     (_, index) => `auth-gate-rate-${context.runId}-${index}@example.com`,
   );
   const emailVariants = [
@@ -1161,51 +1264,47 @@ async function runRateLimitChecks(context) {
     `AUTH-GATE-RATE-${context.runId}@EXAMPLE.COM`,
   ];
   const keys = [
-    `ip:${ipAddress}`,
-    `ip:${emailIpAddress}`,
+    `ip:${transport.localAddress}`,
     `email:${normalizedEmail}`,
     ...distinctEmails.map((email) => `email:${email}`),
   ];
   const hashes = keys.map((key) => tokenHash(key, context.config.tokenPepper));
+  let httpRequestsCompleted = false;
   try {
-    const ipResults = await Promise.all(
-      distinctEmails.map((email, index) =>
-        apiRequest(context.config, "/api/v1/auth/password-recovery", {
-          body: { email },
-          forwardedFor: ipAddress,
-          requestId: `auth-gate-rate-ip-${context.runId}-${index}`,
-        }),
-      ),
-    );
-    classifyRateLimitResponses(ipResults, 30);
-
-    const emailResults = await Promise.all(
+    const emailResults = await drainApiRequests(
       emailVariants.map((email, index) =>
-        apiRequest(context.config, "/api/v1/auth/password-recovery", {
-          body: { email },
-          forwardedFor: emailIpAddress,
-          requestId: `auth-gate-rate-email-${context.runId}-${index}`,
-        }),
+        loopbackApiRequest(
+          context.config,
+          "/api/v1/auth/password-recovery",
+          {
+            body: { email },
+            requestId: `auth-gate-rate-email-${context.runId}-${index}`,
+            timeoutMs: context.requestTimeoutMs,
+          },
+          transport,
+        ),
       ),
     );
+    const ipResults = await drainApiRequests(
+      distinctEmails.map((email, index) =>
+        loopbackApiRequest(
+          context.config,
+          "/api/v1/auth/password-recovery",
+          {
+            body: { email },
+            requestId: `auth-gate-rate-ip-${context.runId}-${index}`,
+            timeoutMs: context.requestTimeoutMs,
+          },
+          transport,
+        ),
+      ),
+    );
+    httpRequestsCompleted = true;
     classifyRateLimitResponses(emailResults, 3);
-
-    const expectedCounters = [
-      [tokenHash(`ip:${ipAddress}`, context.config.tokenPepper), 31],
-      [tokenHash(`ip:${emailIpAddress}`, context.config.tokenPepper), 4],
-      [tokenHash(`email:${normalizedEmail}`, context.config.tokenPepper), 4],
-    ];
-    for (const [hash, expectedCount] of expectedCounters) {
-      const counter = await context.pool.query(
-        `select request_count as "requestCount"
-         from public.rate_limit_counters
-         where subject_hash = $1`,
-        [hash],
-      );
-      if (counter.rows[0]?.requestCount !== expectedCount) {
-        throw new Error("RATE_LIMIT_DATABASE_COUNTER_FAILED");
-      }
-    }
+    classifyRateLimitResponses(ipResults, 26);
+    await assertRateLimitCounter(context.pool, hashes[0], 31);
+    await assertRateLimitCounter(context.pool, hashes[1], 4);
+    await assertDistinctEmailCounters(context.pool, hashes.slice(2), 26);
     return {
       status: "pass",
       metrics: {
@@ -1213,18 +1312,49 @@ async function runRateLimitChecks(context) {
         emailLimit: 3,
         concurrent: true,
         realHttp: true,
-        forwardedIp: true,
+        loopbackSource: true,
+        clientForwardedIp: false,
         normalizedEmail: true,
       },
     };
   } finally {
-    for (const hash of hashes) {
-      await context.pool.query(
-        "delete from public.rate_limit_counters where subject_hash = $1",
-        [hash],
-      );
+    if (httpRequestsCompleted) {
+      await deleteRateLimitCounters(context.pool, hashes);
     }
   }
+}
+
+async function assertRateLimitCounter(pool, subjectHash, expectedCount) {
+  const counter = await pool.query(
+    `select request_count as "requestCount"
+     from public.rate_limit_counters
+     where subject_hash = $1`,
+    [subjectHash],
+  );
+  if (counter.rows.length !== 1 || counter.rows[0].requestCount !== expectedCount) {
+    throw new Error("RATE_LIMIT_DATABASE_COUNTER_FAILED");
+  }
+}
+
+async function assertDistinctEmailCounters(pool, subjectHashes, expectedCount) {
+  const counters = await pool.query(
+    `select count(*)::int as "matchingCount"
+     from public.rate_limit_counters
+     where subject_hash = any($1::bytea[])
+       and request_count = 1`,
+    [subjectHashes],
+  );
+  if (counters.rows[0]?.matchingCount !== expectedCount) {
+    throw new Error("RATE_LIMIT_DATABASE_COUNTER_FAILED");
+  }
+}
+
+async function deleteRateLimitCounters(pool, hashes) {
+  if (hashes.length === 0) return;
+  await pool.query(
+    "delete from public.rate_limit_counters where subject_hash = any($1::bytea[])",
+    [hashes],
+  );
 }
 
 export async function rlsTransaction(database, tableName, userId) {
@@ -1355,17 +1485,21 @@ async function safeCheck(code, work) {
   }
 }
 
+export function buildProbePoolOptions(config) {
+  return {
+    connectionString: config.databaseUrl,
+    ssl: { ca: config.databaseCaCert, rejectUnauthorized: true },
+    max: 3,
+    connectionTimeoutMillis: 5_000,
+    query_timeout: 15_000,
+  };
+}
+
 export async function runStagingCapabilityProbe(config) {
   const { Pool } = requireFromServer("pg");
   const argon2 = requireFromServer("argon2");
   const nestVersion = requireFromServer("@nestjs/core/package.json").version;
-  const pool = new Pool({
-    connectionString: config.databaseUrl,
-    ssl: { ca: config.databaseCaCert, rejectUnauthorized: true },
-    max: 10,
-    connectionTimeoutMillis: 5_000,
-    query_timeout: 15_000,
-  });
+  const pool = new Pool(buildProbePoolOptions(config));
   const runId = randomUUID().slice(0, 8);
   let releaseProbeLock;
   try {
