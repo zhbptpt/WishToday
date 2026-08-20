@@ -1,6 +1,6 @@
 # 06 WishToday v0.2.0 实施日志
 
-状态：Task 3 实现、真实 staging 验收与归档完成
+状态：Task 4 实现、隔离数据库验收与归档完成
 
 负责角色：实现工程师
 
@@ -10,9 +10,9 @@
 
 - 当前版本：v0.2.0
 - 当前阶段：06 实现
-- 当前任务：Task 3，账户数据库、注册验证与登录核心
-- 当前结论：账户 schema、注册验证、重发验证、登录核心、本地数据库兼容套件及真实 Supabase/Render/Resend staging 链路均已完成验收
-- 范围边界：仅实现账户、验证 token、Session 创建、密码恢复数据预留和精确限流；未实现 Refresh 轮换、退出、完整密码恢复、私人配方或前端认证接线
+- 当前任务：Task 4，会话轮换、当前设备退出与原子密码重置
+- 当前结论：Refresh Token 原子轮换与重放撤销、当前设备退出、Session-backed Access Token 校验、密码恢复终态和五个写入点的原子回滚均已通过本地自动化与真实隔离 PostgreSQL 验收
+- 范围边界：仅实现 Task 4 服务端认证能力；未实现 Task 5 安全门禁、前端认证接线、私人配方、主动导入、社区、摇一摇、经典鸡尾酒库或其他后置功能
 
 ## Task 1 历史完成记录
 
@@ -141,6 +141,49 @@ Task 1 最终全量复验和提交完成后，执行 Task 2：版本化本地持
 - 异步邮件没有持久化队列，进程在投递过程中退出时可能丢信；Task 3 不扩展消息队列范围。
 - 前端 `VITE_CLOUD_FEATURES_ENABLED` 默认关闭，因此尚未向 v0.1.0 用户暴露认证入口；前端认证接线留到后续任务。
 
+## Task 4 已完成任务
+
+1. 登录成功后签发 30 天 Refresh Token 与 CSRF Token；Refresh 原值只写入 host-only、`Secure`、`HttpOnly`、`SameSite=Lax` Cookie，响应 JSON 不包含 Refresh Token。
+2. 实现 `POST /api/v1/auth/refresh` 原子轮换；Session 创建、轮换与退出统一按 `users -> account_security -> auth_sessions` 锁序执行，旧 token 重放与后继轮换并发时仍会撤销完整 Session family，两个设备保持独立 Session family。
+3. 实现 `POST /api/v1/auth/logout`，只撤销当前 Refresh Session 并清除当前设备 Cookie，不影响其他设备。
+4. 实现 RS256 Access Token 验证和 `GET /api/v1/auth/me`；固定校验算法、issuer、audience、`kid`，强制 `exp`、`iat`、`sub`，并校验 Session 状态与 `session_version`。
+5. 实现允许 Origin 与双提交 CSRF 校验；Refresh 和 logout 在进入业务服务前拒绝缺失、错误或不受信 Origin。
+6. 实现通用响应的密码恢复请求、目标邮箱限流、一次性 recovery token、密码重置 operation 幂等与 token 绑定状态查询；重置接口在 Argon2 前先执行 IP 限流和廉价 token/operation 预校验，事务提交时再次锁定校验。
+7. 密码重置在单个认证角色事务内锁定 operation、token 和 user，并原子完成密码哈希更新、`session_version + 1`、全部 Session 撤销、token 消费和 operation `completed`。
+8. 扩展真实数据库套件，覆盖双设备、Refresh 轮换/重放、并发轮换与祖先重放、Refresh/Reset 锁序、Login/Reset Session 创建屏障、当前设备退出、并发密码重置幂等，以及五个数据库触发器故障点的完整回滚。
+9. 新增 `auth_sessions(family_id)` 索引迁移，避免重放撤销 family 时扫描完整 Session 表。
+
+## Task 4 测试先行证据
+
+- 会话 E2E 先覆盖 Cookie 属性、响应脱敏、CSRF/Origin、Refresh 轮换、当前设备退出、RS256 claims 与错误 `kid` 拒绝，再补齐 controller、guard、verifier、repository 和 service 实现；提交前审查新增无 `exp`、无 `iat` 拒绝红灯。
+- 密码重置 E2E 先定义通用恢复响应、operation 重试、同 token 状态查询和响应脱敏，再实现恢复 controller/service/repository。
+- 故障注入夹具对密码、版本、Session、token 和 operation 五个写入位置逐项抛错，均确认事务恢复到写入前状态。
+- 真实 PostgreSQL 套件对相同五个表安装临时 `before update` 触发器，逐项验证数据库事务回滚；每个触发器在 `finally` 删除，套件入口和总清理再次执行幂等清理。
+- 代码审查补充错误 `kid` 拒绝、恢复邮箱服务层规范化和首条查询同时锁定 operation/token/user 的回归覆盖。
+- 提交前独立安全审查复现了并发重放漏撤销、无效重置先执行 Argon2 和 JWT 非必需过期声明三个缺口；对应红灯分别观测到 1 条后继 Session 残留、1 次不必要哈希与无过期 token 返回 200，修复后均转绿。
+- 修复复审继续复现了 Refresh/Reset 的 PostgreSQL `40P01` 死锁与 Login/Reset 旧版本 Session 插入交错；统一账户锁序并让 `createSession` 锁后重校验版本后，两项数据库屏障测试转绿。
+
+## Task 4 数据库与安全验证
+
+- 使用隔离的 PostgreSQL 18.4 临时数据库运行 4 个 migrations 和完整 repository 套件，输出为 `{"status":"ok","migrations":4,"constraintSuite":"auth","repositorySuite":"registration-verification-session-rotation-password-reset-rate-limit"}`。
+- 临时数据库只监听 `127.0.0.1`，由 Windows 低权限 `NetworkService` 账户运行；未对 Supabase staging 安装故障触发器，也未修改 staging 数据或 Secret。
+- Session 创建、轮换与退出统一先锁 `users`，再锁 `account_security`，最后读取或写入 `auth_sessions`；检测旧 token 重放后，在同一事务中撤销整个 family。真实 PostgreSQL 屏障测试确认祖先重放并发于后继轮换时 family 无有效 Session 残留，Refresh/Reset 无死锁，Reset 期间的 Login 不会插入旧版本活动 Session。
+- 密码重置首条查询使用 `FOR UPDATE OF o, t, u`，五项写入共享同一认证角色事务；成功重试不会再次增加 `session_version`。
+- Access Token 每次请求都查询 Session 与当前 `session_version`，因此 logout、Refresh 轮换和密码重置提交后旧 Access Token 立即失败。
+- Git、业务响应和实施日志均未写入真实邮箱、密码、Refresh/Access/recovery token、JWT 私钥、数据库凭据或邮件密钥。
+
+## Task 4 最终全量复验
+
+- 服务端固定 Node 22.23.2：15 个测试文件、63 项 Vitest 全部通过；类型检查、生产构建和真实隔离 PostgreSQL 套件通过。
+- 根前端：26 个测试文件、121 项 Vitest 和 6 项部署检查全部通过；类型检查与 GitHub Pages 生产构建通过。
+- `git diff --check` 通过；差异仅包含 Task 4 服务端实现、测试、数据库套件扩展和本日志。
+
+## Task 4 遗留未处理问题
+
+- Task 4 尚未执行 Render/Supabase staging 双设备与故障门禁；该证据属于 Task 5，不能用本地结果替代。
+- 异步恢复邮件沿用 Task 3 的非持久化投递方式，进程在投递期间退出仍可能丢信；本任务不扩展消息队列范围。
+- 前端云功能默认关闭，尚未接入登录、恢复、Session 启动刷新或退出 UI；按计划留到 Task 7。
+
 ## 下一步推荐执行任务
 
-执行 Task 4：会话轮换、当前设备退出与原子密码重置。
+执行 Task 5：新架构认证安全硬门禁。在隔离 staging 完成七项能力验证并产出仅允许 `GO` 或 `NO-GO` 的报告；得到 `GO` 前不得开始 Task 6 或任何私人数据实现。

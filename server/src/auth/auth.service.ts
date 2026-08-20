@@ -78,7 +78,12 @@ export class AuthService {
     password: string;
     ip: string;
     deviceSummary?: string;
-  }): Promise<{ accessToken: string; expiresIn: number }> {
+  }): Promise<{
+    accessToken: string;
+    expiresIn: number;
+    refreshToken: string;
+    csrfToken: string;
+  }> {
     await this.consumeLimit(`ip:${input.ip}`, "5m", 30);
     const account = await this.repository.findLoginAccount(
       normalizeEmail(input.email),
@@ -100,19 +105,66 @@ export class AuthService {
       throw new AuthError("EMAIL_UNVERIFIED", 403);
     }
 
+    const refresh = this.tokenHasher.issue();
+    const csrf = this.tokenHasher.issue();
     const session = await this.repository.createSession({
       userId: account.userId,
       sessionVersion: account.sessionVersion,
+      refreshTokenHash: refresh.tokenHash,
       deviceSummary: input.deviceSummary?.slice(0, 256),
       expiresAt: new Date(Date.now() + SESSION_TTL_MS),
     });
     if (!session) throw new AuthError("INVALID_CREDENTIALS", 401);
 
-    return this.accessTokenIssuer.issue({
+    return {
+      ...(await this.accessTokenIssuer.issue({
       userId: account.userId,
       sessionId: session.id,
       sessionVersion: account.sessionVersion,
+      })),
+      refreshToken: refresh.rawToken,
+      csrfToken: csrf.rawToken,
+    };
+  }
+
+  async refresh(input: { refreshToken?: string }): Promise<{
+    accessToken: string;
+    expiresIn: number;
+    refreshToken: string;
+    csrfToken: string;
+  }> {
+    if (!input.refreshToken) throw new AuthError("AUTH_REQUIRED", 401);
+
+    const nextRefresh = this.tokenHasher.issue();
+    const csrf = this.tokenHasher.issue();
+    const rotated = await this.repository.rotateSession({
+      currentTokenHash: this.tokenHasher.hash(input.refreshToken),
+      nextTokenHash: nextRefresh.tokenHash,
+      expiresAt: new Date(Date.now() + SESSION_TTL_MS),
     });
+    if (rotated.status === "missing") {
+      throw new AuthError("AUTH_REQUIRED", 401);
+    }
+    if (rotated.status !== "rotated") {
+      throw new AuthError("SESSION_REVOKED", 401);
+    }
+
+    return {
+      ...(await this.accessTokenIssuer.issue({
+        userId: rotated.userId,
+        sessionId: rotated.sessionId,
+        sessionVersion: rotated.sessionVersion,
+      })),
+      refreshToken: nextRefresh.rawToken,
+      csrfToken: csrf.rawToken,
+    };
+  }
+
+  async logout(input: { refreshToken?: string }): Promise<void> {
+    if (!input.refreshToken) return;
+    await this.repository.revokeSessionByToken(
+      this.tokenHasher.hash(input.refreshToken),
+    );
   }
 
   private async consumeRegistrationLimits(ip: string, email: string): Promise<void> {

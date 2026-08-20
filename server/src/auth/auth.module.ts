@@ -10,6 +10,13 @@ import { AuthRepository } from "./auth.repository.js";
 import { AuthService } from "./auth.service.js";
 import { PasswordHasher } from "./password-hasher.js";
 import { TokenHasher } from "./token-hasher.js";
+import { CsrfGuard } from "../common/csrf.guard.js";
+import { AuthGuard } from "../common/auth.guard.js";
+import { AccessTokenVerifier } from "../sessions/access-token-verifier.js";
+import { SessionController } from "../sessions/session.controller.js";
+import { AccountRecoveryController } from "../account-recovery/account-recovery.controller.js";
+import { AccountRecoveryRepository } from "../account-recovery/account-recovery.repository.js";
+import { AccountRecoveryService } from "../account-recovery/account-recovery.service.js";
 
 @Module({})
 export class AuthModule {
@@ -17,15 +24,17 @@ export class AuthModule {
     return {
       module: AuthModule,
       imports: [MailModule.register(env), RateLimitModule.register(env)],
-      controllers: [AuthController],
+      controllers: [AuthController, SessionController, AccountRecoveryController],
       providers: [
         {
           provide: AUTH_CONFIG,
           useValue: {
             tokenPepper: env.tokenPepper,
             jwtPrivateKey: env.jwtPrivateKey,
+            jwtPublicKey: env.jwtPublicKey,
             jwtKeyId: env.jwtKeyId,
             frontendBaseUrl: env.allowedOrigins[0],
+            allowedOrigins: env.allowedOrigins,
           },
         },
         AuthRepository,
@@ -33,6 +42,11 @@ export class AuthModule {
         PasswordHasher,
         TokenHasher,
         AccessTokenIssuer,
+        CsrfGuard,
+        AuthGuard,
+        AccessTokenVerifier,
+        AccountRecoveryRepository,
+        AccountRecoveryService,
       ],
     };
   }

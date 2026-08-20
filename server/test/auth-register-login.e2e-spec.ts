@@ -329,6 +329,7 @@ describe("registration, email verification, and login", () => {
         accessToken: "signed-access-token",
         expiresIn: 600,
         tokenType: "Bearer",
+        csrfToken: expect.any(String),
       },
       requestId: REQUEST_ID,
     });

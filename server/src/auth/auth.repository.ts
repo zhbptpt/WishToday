@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import type { PoolClient } from "pg";
 
 import { ScopedDatabaseService } from "../database/scoped-database.service.js";
 
@@ -10,6 +11,19 @@ export interface LoginAccount {
   status: "active" | "disabled";
   sessionVersion: number;
 }
+
+export type RotateSessionResult =
+  | { status: "missing" | "replayed" | "revoked" }
+  | {
+      status: "rotated";
+      userId: string;
+      sessionId: string;
+      sessionVersion: number;
+    };
+
+export type ValidateSessionResult =
+  | { status: "missing" | "revoked" }
+  | { status: "valid"; email: string };
 
 @Injectable()
 export class AuthRepository {
@@ -145,14 +159,16 @@ export class AuthRepository {
   async createSession(input: {
     userId: string;
     sessionVersion: number;
+    refreshTokenHash: Buffer;
     deviceSummary?: string;
     expiresAt: Date;
   }): Promise<{ id: string } | null> {
-    const result = await this.database.authTransaction((client) =>
-      client.query<{ id: string }>(
+    return this.database.authTransaction(async (client) => {
+      if (!(await this.lockAccount(client, input.userId))) return null;
+      const result = await client.query<{ id: string }>(
         `insert into public.auth_sessions
-           (user_id, session_version, device_summary, expires_at)
-         select u.id, s.session_version, $3, $4
+           (user_id, session_version, refresh_token_hash, device_summary, expires_at)
+         select u.id, s.session_version, $3, $4, $5
          from public.users u
          join public.account_security s on s.user_id = u.id
          where u.id = $1
@@ -160,9 +176,229 @@ export class AuthRepository {
            and u.email_verified_at is not null
            and s.session_version = $2
          returning id`,
-        [input.userId, input.sessionVersion, input.deviceSummary ?? null, input.expiresAt],
+        [
+          input.userId,
+          input.sessionVersion,
+          input.refreshTokenHash,
+          input.deviceSummary ?? null,
+          input.expiresAt,
+        ],
+      );
+      return result.rows[0] ?? null;
+    });
+  }
+
+  async rotateSession(input: {
+    currentTokenHash: Buffer;
+    nextTokenHash: Buffer;
+    expiresAt: Date;
+  }): Promise<RotateSessionResult> {
+    return this.database.authTransaction(async (client) => {
+      if (!(await this.lockSessionAccount(client, input.currentTokenHash))) {
+        return { status: "missing" };
+      }
+      const found = await client.query<{
+        id: string;
+        userId: string;
+        familyId: string;
+        rotationCounter: number;
+        sessionVersion: number;
+        currentSessionVersion: number;
+        status: "active" | "disabled";
+        emailVerifiedAt: Date | null;
+        expiresAt: Date;
+        revokedAt: Date | null;
+      }>(
+        `select
+           a.id,
+           a.user_id as "userId",
+           a.family_id as "familyId",
+           a.rotation_counter as "rotationCounter",
+           a.session_version as "sessionVersion",
+           s.session_version as "currentSessionVersion",
+           u.status,
+           u.email_verified_at as "emailVerifiedAt",
+           a.expires_at as "expiresAt",
+           a.revoked_at as "revokedAt"
+         from public.auth_sessions a
+         join public.users u on u.id = a.user_id
+         join public.account_security s on s.user_id = a.user_id
+         where a.refresh_token_hash = $1
+         for update of a`,
+        [input.currentTokenHash],
+      );
+      const current = found.rows[0];
+      if (!current) return { status: "missing" };
+
+      if (current.revokedAt) {
+        await client.query(
+          `update public.auth_sessions
+           set revoked_at = coalesce(revoked_at, now())
+           where family_id = $1`,
+          [current.familyId],
+        );
+        return { status: "replayed" };
+      }
+
+      if (
+        current.expiresAt.getTime() <= Date.now() ||
+        current.status !== "active" ||
+        !current.emailVerifiedAt ||
+        current.sessionVersion !== current.currentSessionVersion
+      ) {
+        await client.query(
+          `update public.auth_sessions
+           set revoked_at = coalesce(revoked_at, now())
+           where family_id = $1`,
+          [current.familyId],
+        );
+        return { status: "revoked" };
+      }
+
+      await client.query(
+        `update public.auth_sessions
+         set revoked_at = now(), last_used_at = now()
+         where id = $1`,
+        [current.id],
+      );
+      const inserted = await client.query<{ id: string }>(
+        `insert into public.auth_sessions
+           (user_id, family_id, refresh_token_hash, rotation_counter,
+            session_version, expires_at, last_used_at)
+         values ($1, $2, $3, $4, $5, $6, now())
+         returning id`,
+        [
+          current.userId,
+          current.familyId,
+          input.nextTokenHash,
+          current.rotationCounter + 1,
+          current.currentSessionVersion,
+          input.expiresAt,
+        ],
+      );
+      return {
+        status: "rotated",
+        userId: current.userId,
+        sessionId: inserted.rows[0]!.id,
+        sessionVersion: current.currentSessionVersion,
+      };
+    });
+  }
+
+  async revokeSessionByToken(tokenHash: Buffer): Promise<void> {
+    await this.database.authTransaction(async (client) => {
+      if (!(await this.lockSessionAccount(client, tokenHash))) return;
+      const found = await client.query<{
+        id: string;
+        familyId: string;
+        revokedAt: Date | null;
+      }>(
+        `select id, family_id as "familyId", revoked_at as "revokedAt"
+         from public.auth_sessions
+         where refresh_token_hash = $1
+         for update`,
+        [tokenHash],
+      );
+      const current = found.rows[0];
+      if (!current) return;
+
+      if (current.revokedAt) {
+        await client.query(
+          `update public.auth_sessions
+           set revoked_at = coalesce(revoked_at, now())
+           where family_id = $1`,
+          [current.familyId],
+        );
+        return;
+      }
+      await client.query(
+        `update public.auth_sessions
+         set revoked_at = now(), last_used_at = now()
+         where id = $1`,
+        [current.id],
+      );
+    });
+  }
+
+  private async lockSessionAccount(
+    client: PoolClient,
+    tokenHash: Buffer,
+  ): Promise<boolean> {
+    const owner = await client.query<{ userId: string }>(
+      `select user_id as "userId"
+       from public.auth_sessions
+       where refresh_token_hash = $1`,
+      [tokenHash],
+    );
+    const userId = owner.rows[0]?.userId;
+    if (!userId) return false;
+    return this.lockAccount(client, userId);
+  }
+
+  private async lockAccount(
+    client: PoolClient,
+    userId: string,
+  ): Promise<boolean> {
+    const user = await client.query(
+      `select id
+       from public.users
+       where id = $1
+       for update`,
+      [userId],
+    );
+    if (user.rowCount !== 1) return false;
+    const locked = await client.query(
+      `select user_id
+       from public.account_security
+       where user_id = $1
+       for update`,
+      [userId],
+    );
+    return locked.rowCount === 1;
+  }
+
+  async validateSession(input: {
+    userId: string;
+    sessionId: string;
+    sessionVersion: number;
+  }): Promise<ValidateSessionResult> {
+    const found = await this.database.authTransaction((client) =>
+      client.query<{
+        email: string;
+        userStatus: "active" | "disabled";
+        emailVerifiedAt: Date | null;
+        sessionVersion: number;
+        currentSessionVersion: number;
+        expiresAt: Date;
+        revokedAt: Date | null;
+      }>(
+        `select
+           u.email,
+           u.status as "userStatus",
+           u.email_verified_at as "emailVerifiedAt",
+           a.session_version as "sessionVersion",
+           s.session_version as "currentSessionVersion",
+           a.expires_at as "expiresAt",
+           a.revoked_at as "revokedAt"
+         from public.auth_sessions a
+         join public.users u on u.id = a.user_id
+         join public.account_security s on s.user_id = a.user_id
+         where a.id = $1 and a.user_id = $2`,
+        [input.sessionId, input.userId],
       ),
     );
-    return result.rows[0] ?? null;
+    const session = found.rows[0];
+    if (!session) return { status: "missing" };
+    if (
+      session.revokedAt ||
+      session.expiresAt.getTime() <= Date.now() ||
+      session.userStatus !== "active" ||
+      !session.emailVerifiedAt ||
+      session.sessionVersion !== session.currentSessionVersion ||
+      input.sessionVersion !== session.currentSessionVersion
+    ) {
+      return { status: "revoked" };
+    }
+    return { status: "valid", email: session.email };
   }
 }
