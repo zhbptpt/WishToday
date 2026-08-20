@@ -527,16 +527,25 @@ test("checks rate limits through an isolated loopback source without scanning sh
 test("does not race cleanup against requests whose transport completion is unknown", async (t) => {
   const capabilityGate = await import("./capability-gate.mjs");
   let finishedRequests = 0;
+  const pendingResponses = [];
   const server = createServer((request, response) => {
     request.resume();
     request.on("end", () => {
+      pendingResponses.push({ request, response });
+      if (pendingResponses.length !== 4) return;
+
+      const [failedRequest, ...successfulRequests] = pendingResponses;
+      finishedRequests += 1;
+      failedRequest.response.destroy();
       setTimeout(() => {
-        finishedRequests += 1;
-        response.writeHead(202, {
-          "content-type": "application/json",
-          "x-request-id": request.headers["x-request-id"],
-        });
-        response.end(JSON.stringify({ ok: true }));
+        for (const completed of successfulRequests) {
+          finishedRequests += 1;
+          completed.response.writeHead(202, {
+            "content-type": "application/json",
+            "x-request-id": completed.request.headers["x-request-id"],
+          });
+          completed.response.end(JSON.stringify({ ok: true }));
+        }
       }, 30);
     });
   });
@@ -565,12 +574,10 @@ test("does not race cleanup against requests whose transport completion is unkno
       },
       runId: "b1c2d3e4",
       now: () => 1_000,
-      requestTimeoutMs: 5,
     }),
   );
 
   assert.equal(databaseCalls.length, 0);
-  await new Promise((resolve) => setTimeout(resolve, 40));
   assert.equal(finishedRequests, 4);
 });
 

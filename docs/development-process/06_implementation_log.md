@@ -1,17 +1,17 @@
 # 06 WishToday v0.2.0 实施日志
 
-状态：Task 5 本地门禁实现完成，真实 staging 验收待执行
+状态：Task 5 真实 staging 门禁通过，最终结论 `GO`
 
 负责角色：实现工程师
 
-日期：2026-08-20
+日期：2026-08-21
 
 ## 当前阶段
 
 - 当前版本：v0.2.0
 - 当前阶段：06 实现
 - 当前任务：Task 5，新架构认证安全硬门禁
-- 当前结论：七项固定能力的探针、失败关闭判定、脱敏报告和本地测试已实现；真实 Render/Supabase staging 尚未执行，因此尚未形成最终 `GO` 或 `NO-GO`
+- 当前结论：真实 Render/Supabase staging 七项固定能力全部为 `pass`，认证安全硬门禁最终结论为 `GO`
 - 范围边界：仅验证 Task 3/4 已实现的认证基础；未开始 Task 6、前端认证接线、私人配方、主动导入、社区、摇一摇、经典鸡尾酒库或其他后置功能
 
 ## Task 1 历史完成记录
@@ -180,13 +180,13 @@ Task 1 最终全量复验和提交完成后，执行 Task 2：版本化本地持
 
 ## Task 4 遗留未处理问题
 
-- Task 4 尚未执行 Render/Supabase staging 双设备与故障门禁；该证据属于 Task 5，不能用本地结果替代。
+- Task 4 完成时尚未执行 Render/Supabase staging 双设备与故障门禁；该证据随后已由 Task 5 的真实 staging 验收补齐并形成 `GO`。
 - 异步恢复邮件沿用 Task 3 的非持久化投递方式，进程在投递期间退出仍可能丢信；本任务不扩展消息队列范围。
 - 前端云功能默认关闭，尚未接入登录、恢复、Session 启动刷新或退出 UI；按计划留到 Task 7。
 
 ## 下一步推荐执行任务
 
-完成 Task 5 的真实 staging 检查点：部署当前探针、确认第四个 migration、在 Render Shell 执行七项能力验证并归档脱敏结果。只有最终结论为 `GO` 才能推荐 Task 6；否则停止并返回 Task 20 修订。
+执行 Task 6：本地与云端账户状态编排。Task 5 已形成 `GO`，Task 6 不再受认证安全门禁阻塞；仍须保持前端云功能默认关闭，并继续排除社区、摇一摇、发布、收藏和经典鸡尾酒库等后置范围。
 
 ## Task 5 本地完成记录
 
@@ -206,9 +206,24 @@ Task 1 最终全量复验和提交完成后，执行 Task 2：版本化本地持
 - 自审额外捕获响应头已到但 body cancel 较慢的竞态，测试先失败，随后以独立 `headersArrived` 状态失败关闭。
 - 原 Task 4 设备 A Refresh 拒绝断言重复一次，已在绿灯重构阶段去重，并把新密码登录放到全部旧令牌拒绝检查之后。
 
-## Task 5 当前遗留问题
+## Task 5 真实 staging 验收
 
-- 尚未将包含探针的 commit 部署到 Render staging，也未在真实 Supabase staging 执行七项门禁；当前不得记录 `GO`。
-- 需要确认 `202608200104_auth_session_family_index.sql` 已应用到 staging，否则探针会以 `NO-GO` 失败关闭。
-- 需要在 Render 配置 `AUTH_GATEWAY_EXPECTED_SERVICE_ID`、`AUTH_GATEWAY_EXPECTED_GIT_COMMIT` 与 `AUTH_GATEWAY_DATABASE_IDENTITY_SHA256` 三个只读身份 Secret；值不得进入 Git、日志或聊天。
-- 异步验证/恢复邮件仍没有持久化队列；该问题不扩入当前 MVP，但继续作为已知运维风险保留。
+- Render `wishtoday-api-staging` 已部署提交 `18045fe339f4`；新实例健康启动，公开 `GET /healthz` 返回 `200 {"status":"ok"}`。
+- Render Shell 只读身份检查确认运行提交与 40 位期望提交精确一致；服务、分支、区域、规格、数据库身份、TLS 与 staging 标记均通过探针预检。
+- 探针确认第四个 migration 和 `auth_sessions_family_idx` 已存在，随后输出 `decision: GO`。
+- `atomicPasswordReset`、`rollbackOnInjectedFailure`、`staleAccessRejected`、`refreshFamilyReplayRevoked`、`resetOperationIdempotency`、`postgresRateLimits` 与 `rlsContextIsolation` 七项全部为 `pass`。
+- 五处故障注入均完整回滚；双设备旧令牌全部拒绝；Refresh family 重放后无活动 Session；响应丢失后的重置 operation 终态为 `completed` 且重试幂等。
+- 真实 HTTP 限流验证 IP 30 次与邮箱 3 次阈值，未发送客户端 `x-forwarded-for`；RLS 验证 36 个顺序事务、12 轮同连接复用和 12 次无上下文默认拒绝。
+- 验收报告只保留短 commit、版本、固定能力名和安全指标，未记录数据库 URL、身份指纹、service ID、账户、邮箱、IP、Cookie、Token 或 Secret。
+
+## Task 5 最终复验
+
+- 根前端：26 个测试文件、121 项 Vitest 全部通过；部署与认证探针 Node 测试 48 项全部通过，其中认证门禁契约 42 项。
+- 提交前全量并行复验暴露出本地 HTTP 竞态测试依赖 `5 ms` 固定超时；已改为服务端确认四个请求到达后确定性注入一次传输失败，并用退化为 `Promise.all` 的红灯验证该测试能够捕获提前返回回归。
+- 前后端类型检查、服务端生产构建与 GitHub Pages 生产构建通过；SPA `404.html` fallback 正常生成。
+- 最终门禁结论：`GO`。Task 6 不再受认证安全硬门禁阻塞。
+
+## Task 5 遗留未处理问题
+
+- 异步验证/恢复邮件仍没有持久化队列；进程在投递期间退出可能丢信。该问题不扩入当前 MVP，继续作为已知运维风险保留。
+- 前端云功能仍默认关闭，账户状态编排与认证 UI 尚未实现，按计划由 Task 6 和 Task 7 处理。

@@ -1,8 +1,8 @@
 # NestJS 认证网关能力门禁
 
-状态：执行中，真实 staging 证据待采集
+状态：已完成，最终结论 `GO`
 
-证据日期：2026-08-20（Asia/Shanghai）
+证据日期：2026-08-21（Asia/Shanghai）
 
 对应版本：WishToday v0.2.0 / 实施计划 Task 5
 
@@ -12,13 +12,13 @@
 
 | 能力 | 固定标识 | staging 状态 |
 | --- | --- | --- |
-| 密码重置五项写入原子提交 | `atomicPasswordReset` | 待执行 |
-| 五个写入点异常时完整回滚 | `rollbackOnInjectedFailure` | 待执行 |
-| 双设备旧 Access/Refresh 立即拒绝且新密码可登录 | `staleAccessRejected` | 待执行 |
-| 当前设备退出隔离与 Refresh family 重放撤销 | `refreshFamilyReplayRevoked` | 待执行 |
-| 丢弃重置响应后查询终态且重试幂等 | `resetOperationIdempotency` | 待执行 |
-| PostgreSQL 并发限流阈值 | `postgresRateLimits` | 待执行 |
-| RLS 连接池事务上下文隔离和默认拒绝 | `rlsContextIsolation` | 待执行 |
+| 密码重置五项写入原子提交 | `atomicPasswordReset` | `pass` |
+| 五个写入点异常时完整回滚 | `rollbackOnInjectedFailure` | `pass` |
+| 双设备旧 Access/Refresh 立即拒绝且新密码可登录 | `staleAccessRejected` | `pass` |
+| 当前设备退出隔离与 Refresh family 重放撤销 | `refreshFamilyReplayRevoked` | `pass` |
+| 丢弃重置响应后查询终态且重试幂等 | `resetOperationIdempotency` | `pass` |
+| PostgreSQL 并发限流阈值 | `postgresRateLimits` | `pass` |
+| RLS 连接池事务上下文隔离和默认拒绝 | `rlsContextIsolation` | `pass` |
 
 ## 探针设计
 
@@ -42,7 +42,7 @@
 5. 自审额外复现“响应头已到但 body cancel 较慢”的竞态红灯，修复后该情况会严格失败而不会伪装成网络丢失。
 6. 第二轮独立安全审查发现提交身份未绑定本轮 SHA、响应丢失可能由并发重试代为提交、故障 `500` 可能误判、退出遗漏旧 Refresh、RLS 未证明物理连接复用及 SQL `LIKE` 清理边界；六项均先补失败测试，再完成最小修复。
 
-本地探针测试当前覆盖 34 项。真实 staging 未执行前，本文件不记录 `GO`，本地结果也不得替代门禁证据。
+本地探针测试当前覆盖 42 项。本地结果只验证探针契约；最终结论以下述真实 staging 结果为准。
 
 ## 可复现命令
 
@@ -59,10 +59,27 @@ npm run probe:auth-gateway
 - 邮件投递继续沿用非持久化适配器；持久化邮件队列不扩入当前 MVP。
 - 数据库 URL、密码、JWT、pepper、Resend Key、邮箱、Cookie 和 token 不写入 Git、报告或聊天。
 
-## 待完成证据
+## 真实 staging 证据
 
-- 将第四个 migration 应用到 Supabase staging，并确认 `auth_sessions_family_idx` 存在。
-- 在 Render staging 配置 `AUTH_GATEWAY_EXPECTED_SERVICE_ID`、`AUTH_GATEWAY_EXPECTED_GIT_COMMIT` 与 `AUTH_GATEWAY_DATABASE_IDENTITY_SHA256`；值只进入 Render Secret，不进入 Git、报告或聊天。
-- 部署包含本探针的 commit，在 Render Shell 执行七项真实门禁。
-- 将脱敏 JSON 结果、版本、故障点和期望/实际结果归档到本文件。
-- 完成服务端、前端、构建、类型检查与差异检查后，按真实结果写入唯一最终结论。
+- 2026-08-21 05:52（Asia/Shanghai）在 Render `wishtoday-api-staging` 新实例内执行；环境证明为 Node v22.23.2、NestJS 11.1.29、PostgreSQL 17.6、Singapore、Starter，部署提交短标识为 `18045fe339f4`。
+- 运行提交与预配置的 40 位期望提交精确一致；服务身份、数据库身份指纹、TLS socket、部署分支和 staging 标记均通过失败关闭预检。
+- 第四个 migration 已由探针确认，`auth_sessions_family_idx` 存在；未记录数据库 URL、身份指纹、service ID 或任何 Secret。
+- 探针输出 `decision: GO`，七项固定能力全部为 `pass`，并正常返回 Shell 提示符。
+
+## 脱敏结果摘要
+
+| 能力 | 期望 | 真实结果 |
+| --- | --- | --- |
+| `atomicPasswordReset` | 五项写入同一事务提交 | `pass`，`mutations=5` |
+| `rollbackOnInjectedFailure` | 五个故障点均完整回滚 | `pass`，`faultPoints=5` |
+| `staleAccessRejected` | 两设备旧 Access/Refresh 全部拒绝，新密码可登录 | `pass`，验证 2 个设备、2 个 Access 与 2 个 Refresh |
+| `refreshFamilyReplayRevoked` | 当前设备退出隔离；祖先重放后 family 无活动 Session | `pass`，并发竞态完成且 `activeFamilySessions=0` |
+| `resetOperationIdempotency` | 响应头前断线后可查终态，同 operation 并发重试不重复写入 | `pass`，重试 2 次，终态 `completed` |
+| `postgresRateLimits` | 真实 HTTP 精确命中 IP 30 次和邮箱 3 次阈值 | `pass`，回环来源隔离，未发送客户端 `x-forwarded-for`，邮箱规范化生效 |
+| `rlsContextIsolation` | 连接池复用不泄露事务上下文，无上下文默认拒绝 | `pass`，36 个顺序事务、12 轮复用、12 次默认拒绝，单物理连接成立 |
+
+故障注入的预期结果是目标请求返回受控应用 `500`，密码、版本、Session、token 和 operation 五处状态均保持写入前值；真实结果五个故障点全部满足。限流与 RLS 探针均完成隔离清理，报告未输出账户、邮箱、原始 IP、Cookie、Token 或 Secret。
+
+## 最终结论
+
+`GO`。Task 5 的认证安全硬门禁已通过，Task 6 不再受本门禁阻塞。异步验证/恢复邮件缺少持久化队列仍作为已知运维风险保留，但不扩入当前 MVP。
