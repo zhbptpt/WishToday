@@ -25,6 +25,12 @@ services:
         sync: false
       - key: DATABASE_CA_CERT_BASE64
         sync: false
+      - key: AUTH_GATEWAY_DATABASE_IDENTITY_SHA256
+        sync: false
+      - key: AUTH_GATEWAY_EXPECTED_SERVICE_ID
+        sync: false
+      - key: AUTH_GATEWAY_EXPECTED_GIT_COMMIT
+        sync: false
       - key: JWT_PRIVATE_KEY_BASE64
         sync: false
       - key: JWT_PUBLIC_KEY_BASE64

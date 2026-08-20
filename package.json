@@ -8,9 +8,10 @@
     "build": "tsc -b && vite build",
     "build:pages": "npm run build -- --base=/WishToday/ && node scripts/prepare-spa-fallback.mjs",
     "preview": "vite preview",
+    "probe:auth-gateway": "node scripts/auth-gateway/capability-gate.mjs",
     "probe:supabase-auth": "node scripts/supabase/auth-capability-probe.mjs",
     "typecheck": "tsc -b",
-    "test": "vitest run && node --test scripts/deployment-config.check.mjs scripts/render-config.check.mjs"
+    "test": "vitest run && node --test scripts/deployment-config.check.mjs scripts/render-config.check.mjs scripts/auth-gateway/capability-gate.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.85.3",

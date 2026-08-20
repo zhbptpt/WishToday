@@ -129,15 +129,11 @@ export function getServerEnv(source: EnvSource = process.env): ServerEnv {
     if (url.protocol !== "postgres:" && url.protocol !== "postgresql:") {
       throw new Error("wrong protocol");
     }
-    const forbiddenTlsParameters = [
-      "sslmode",
-      "sslcert",
-      "sslkey",
-      "sslrootcert",
-      "sslcrl",
-    ];
-    if (forbiddenTlsParameters.some((name) => url.searchParams.has(name))) {
-      throw new Error("TLS parameters must not be overridden");
+    for (const name of url.searchParams.keys()) {
+      const normalized = name.toLowerCase();
+      if (normalized.startsWith("ssl") || normalized === "channel_binding") {
+        throw new Error("TLS parameters must not be overridden");
+      }
     }
   } catch {
     throw new Error(

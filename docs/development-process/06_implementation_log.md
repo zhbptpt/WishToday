@@ -1,18 +1,18 @@
 # 06 WishToday v0.2.0 实施日志
 
-状态：Task 4 实现、隔离数据库验收与归档完成
+状态：Task 5 本地门禁实现完成，真实 staging 验收待执行
 
 负责角色：实现工程师
 
-日期：2026-08-19
+日期：2026-08-20
 
 ## 当前阶段
 
 - 当前版本：v0.2.0
 - 当前阶段：06 实现
-- 当前任务：Task 4，会话轮换、当前设备退出与原子密码重置
-- 当前结论：Refresh Token 原子轮换与重放撤销、当前设备退出、Session-backed Access Token 校验、密码恢复终态和五个写入点的原子回滚均已通过本地自动化与真实隔离 PostgreSQL 验收
-- 范围边界：仅实现 Task 4 服务端认证能力；未实现 Task 5 安全门禁、前端认证接线、私人配方、主动导入、社区、摇一摇、经典鸡尾酒库或其他后置功能
+- 当前任务：Task 5，新架构认证安全硬门禁
+- 当前结论：七项固定能力的探针、失败关闭判定、脱敏报告和本地测试已实现；真实 Render/Supabase staging 尚未执行，因此尚未形成最终 `GO` 或 `NO-GO`
+- 范围边界：仅验证 Task 3/4 已实现的认证基础；未开始 Task 6、前端认证接线、私人配方、主动导入、社区、摇一摇、经典鸡尾酒库或其他后置功能
 
 ## Task 1 历史完成记录
 
@@ -186,4 +186,29 @@ Task 1 最终全量复验和提交完成后，执行 Task 2：版本化本地持
 
 ## 下一步推荐执行任务
 
-执行 Task 5：新架构认证安全硬门禁。在隔离 staging 完成七项能力验证并产出仅允许 `GO` 或 `NO-GO` 的报告；得到 `GO` 前不得开始 Task 6 或任何私人数据实现。
+完成 Task 5 的真实 staging 检查点：部署当前探针、确认第四个 migration、在 Render Shell 执行七项能力验证并归档脱敏结果。只有最终结论为 `GO` 才能推荐 Task 6；否则停止并返回 Task 20 修订。
+
+## Task 5 本地完成记录
+
+1. 新增七项固定能力判定器；只有全部证据为 `pass` 才返回 `GO`，缺失、跳过、未知、格式错误或执行异常均失败关闭为 `NO-GO`。
+2. 新增精确 Render 主机/service ID/分支/本轮预期 commit、数据库身份指纹、严格 TLS socket、第四个 migration 预检、advisory lock 和异常残留清扫。
+3. 密码重置探针只在 PostgreSQL `NOTIFY` 证明目标 operation 已提交且响应头未到达时主动断线，之后轮询终态并并发重试相同 `operationId`；同时验证双设备旧 Access/Refresh 立即拒绝和新密码可登录。
+4. Session 探针验证当前设备退出后旧 Access 与旧 Refresh 均精确拒绝；随后并发执行祖先 Refresh 重放与后继轮换，并从数据库确认整个 Session family 没有活动记录。
+5. 探针报告只输出固定能力名、状态、错误码、安全指标及显式白名单环境字段，不输出账户、密码、Cookie、token、service ID、数据库身份指纹或其他平台 Secret。
+6. 故障注入使用专用 SQLSTATE、控制事务和唯一事务 advisory lock；只有独立连接观察到目标 HTTP 事务持锁后才接受精确应用 `500` 与回显 request ID，五个写入点均核对完整回滚。
+7. 限流改走真实 password-recovery HTTP 入口，验证代理 IP、邮箱规范化、精确 `429 RATE_LIMITED` 和 PostgreSQL counter；RLS 改用正式事务边界与 `app.user_id`，占满连接池只留一个应用槽位，在同一物理连接执行 12 轮 A/B/无上下文交替。
+8. 启动清理不再使用带下划线通配符的 SQL `LIKE`；Trigger、函数和临时 RLS 表均通过严格对象名正则与表白名单后才删除。
+
+## Task 5 本地测试先行证据
+
+- 判定器、报告脱敏、CLI 失败关闭、staging 配置、Cookie 与 npm 接线均先观察到预期红灯，再完成实现。
+- 两轮独立安全审查的 P1/P2 均逐项验证并以失败测试复现；修复后探针测试为 34 项。
+- 自审额外捕获响应头已到但 body cancel 较慢的竞态，测试先失败，随后以独立 `headersArrived` 状态失败关闭。
+- 原 Task 4 设备 A Refresh 拒绝断言重复一次，已在绿灯重构阶段去重，并把新密码登录放到全部旧令牌拒绝检查之后。
+
+## Task 5 当前遗留问题
+
+- 尚未将包含探针的 commit 部署到 Render staging，也未在真实 Supabase staging 执行七项门禁；当前不得记录 `GO`。
+- 需要确认 `202608200104_auth_session_family_index.sql` 已应用到 staging，否则探针会以 `NO-GO` 失败关闭。
+- 需要在 Render 配置 `AUTH_GATEWAY_EXPECTED_SERVICE_ID`、`AUTH_GATEWAY_EXPECTED_GIT_COMMIT` 与 `AUTH_GATEWAY_DATABASE_IDENTITY_SHA256` 三个只读身份 Secret；值不得进入 Git、日志或聊天。
+- 异步验证/恢复邮件仍没有持久化队列；该问题不扩入当前 MVP，但继续作为已知运维风险保留。

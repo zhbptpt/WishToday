@@ -81,6 +81,22 @@ describe("getServerEnv", () => {
           "postgresql://user:password@db.example.com:5432/wishtoday?sslmode=disable",
       }),
     ).toThrow("DATABASE_URL");
+
+    expect(() =>
+      getServerEnv({
+        ...validSecrets,
+        DATABASE_URL:
+          "postgresql://user:password@db.example.com:5432/wishtoday?ssl=true",
+      }),
+    ).toThrow("DATABASE_URL");
+
+    expect(() =>
+      getServerEnv({
+        ...validSecrets,
+        DATABASE_URL:
+          "postgresql://user:password@db.example.com:5432/wishtoday?channel_binding=disable",
+      }),
+    ).toThrow("DATABASE_URL");
   });
 
   it("rejects invalid Base64 database CA certificates", () => {
